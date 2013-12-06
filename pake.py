@@ -136,7 +136,7 @@ class Target:
             #    os.unlink(filename)
 
 class Phony(Target):
-    def __init__(self, name, depends_on, run_before, run_after):
+    def __init__(self, name, depends_on, run_before, run_after, artefact):
         Target.__init__(self, name, depends_on, run_before, run_after)
 
     def build(self):
@@ -377,6 +377,7 @@ class PakeFile:
         depends_on = []
         run_before = None
         run_after = None
+        artefact = None
 
         while True:
             token = it.next()
@@ -384,6 +385,7 @@ class PakeFile:
                 if   token[1] == "depends_on": depends_on = self.__parse_list(it)
                 elif token[1] == "run_before": run_before = self.__parse_argument(it)
                 elif token[1] == "run_after": run_after = self.__parse_argument(it)
+                elif token[1] == "artefact": artefact = self.__parse_argument(it)
                 else: raise ParsingError(token)
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
@@ -391,7 +393,7 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Phony(target_name, depends_on, run_before, run_after)
+        target = Phony(target_name, depends_on, run_before, run_after, artefact)
         self.__add_target(target)
 
     def __parse_target(self, it):
