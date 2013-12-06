@@ -250,7 +250,7 @@ class PakeFile:
 
         self.variable_deposit = variable_deposit
         self.filename = filename
-        self.name = filename # TODO: loose extension
+        self.name = self.__get_module_name(filename)
         self.lines = []
         self.variables = {}
         self.targets = []
@@ -262,6 +262,11 @@ class PakeFile:
         self.__parse()
 
         debug("variables: " + str(self.variables))
+
+    def __get_module_name(self, filename):
+        base = os.path.basename(filename)
+        (root, ext) = os.path.splitext(base)
+        return root
 
     def __add_target(self, target):
         debug("adding target: " + str(target) + ", depends_on: " + str(target.depends_on))
