@@ -102,14 +102,20 @@ class CxxArchiver:
 """
 
 class Target:
-    def __init__(self, name, depends_on, run_after):
+    def __init__(self, name, depends_on, run_before, run_after):
         self.name = name
         self.depends_on = depends_on
+        self.run_before = run_before
         self.run_after = run_after
         debug("run_after: " + str(self.run_after))
 
     def __str__(self):
         return self.name
+
+    def before(self):
+        if self.run_before != None:
+            debug("running " + str(self.run_before))
+            execute(self.run_before)
 
     def after(self):
         if self.run_after != None:
@@ -130,15 +136,15 @@ class Target:
             #    os.unlink(filename)
 
 class Phony(Target):
-    def __init__(self, name, depends_on, run_after):
-        Target.__init__(self, name, depends_on, run_after)
+    def __init__(self, name, depends_on, run_before, run_after):
+        Target.__init__(self, name, depends_on, run_before, run_after)
 
     def build(self):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, name, depends_on, run_after, sources, link_with):
-        Target.__init__(self, name, depends_on, run_after)
+    def __init__(self, name, depends_on, run_before, run_after, sources, link_with):
+        Target.__init__(self, name, depends_on, run_before, run_after)
 
         self.sources = sources
         self.link_with = link_with
@@ -163,8 +169,8 @@ class Application(Target):
         return BUILD_DIR + "/" + self.name
 
 class StaticLibrary(Target):
-    def __init__(self, name, depends_on, run_after, sources):
-        Target.__init__(self, name, depends_on, run_after)
+    def __init__(self, name, depends_on, run_before, run_after, sources):
+        Target.__init__(self, name, depends_on, run_before, run_after)
 
         self.sources = sources
         self.compiler = CxxCompiler()
@@ -312,7 +318,7 @@ class PakeFile:
         else:
             raise ParsingError(token)
 
-    def __parse_run_after(self, it):
+    def __parse_argument(self, it):
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_OPEN_PARENTHESIS:
@@ -326,6 +332,7 @@ class PakeFile:
     def __parse_application_target(self, target_name, it):
         link_with = []
         depends_on = []
+        run_before = None
         run_after = None
 
         while True:
@@ -334,18 +341,20 @@ class PakeFile:
                 if token[1] == "sources": sources = self.__parse_list(it)
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
                 elif token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_after": run_after = self.__parse_run_after(it)
+                elif token[1] == "run_before": run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": run_after = self.__parse_argument(it)
                 else: raise ParsingError(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError(token)
 
-        target = Application(target_name, depends_on, run_after, sources, link_with)
+        target = Application(target_name, depends_on, run_before, run_after, sources, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
         depends_on = []
+        run_before = None
         run_after = None
 
         while True:
@@ -353,25 +362,28 @@ class PakeFile:
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "sources": sources = self.__parse_list(it)
                 elif token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_after": run_after = self.__parse_run_after(it)
+                elif token[1] == "run_before": run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": run_after = self.__parse_argument(it)
                 else: raise ParsingError()
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError()
 
-        target = StaticLibrary(target_name, depends_on, run_after, sources)
+        target = StaticLibrary(target_name, depends_on, run_before, run_after, sources)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
         depends_on = []
+        run_before = None
         run_after = None
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if   token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_after": run_after = self.__parse_run_after(it)
+                elif token[1] == "run_before": run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": run_after = self.__parse_argument(it)
                 else: raise ParsingError(token)
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
@@ -379,7 +391,7 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Phony(target_name, depends_on, run_after)
+        target = Phony(target_name, depends_on, run_before, run_after)
         self.__add_target(target)
 
     def __parse_target(self, it):
@@ -612,6 +624,7 @@ class SourceTree:
                     for dependency in t.depends_on:
                         debug(str(t) + " depends on " + dependency)
                         self.build(dependency)
+                    t.before()
                     t.build()
                     t.after()
         if not found:

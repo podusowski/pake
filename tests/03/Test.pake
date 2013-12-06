@@ -3,5 +3,5 @@ append $sources Test2.cpp
 
 set $cflags -pedantic
 
-target application Test sources(Test1.cpp $sources)
+target application Test sources(Test1.cpp $sources) run_before(./generate.sh)
 
