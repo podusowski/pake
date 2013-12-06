@@ -1,0 +1,2 @@
+target application Test sources(main.cpp) link_with(external_library.o) depends_on(external_library)
+

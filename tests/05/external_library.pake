@@ -1,0 +1,2 @@
+target phony external_library artefact(library.o) runs_before(./external_library.sh)
+
