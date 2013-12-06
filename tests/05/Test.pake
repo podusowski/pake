@@ -1,3 +1,2 @@
-set $build_dir _build/external_library/
-target application Test sources(main.cpp) link_with(external_library.o) depends_on(external_library)
+target application Test sources(main.cpp) link_with($external_library.artefact) depends_on(external_library)
 

@@ -102,7 +102,7 @@ class CxxArchiver:
 """
 
 class Target:
-    def __init__(self, name, depends_on, run_before, run_after):
+    def __init__(self, variable_deposit, name, depends_on, run_before, run_after):
         self.name = name
         self.depends_on = depends_on
         self.run_before = run_before
@@ -136,15 +136,15 @@ class Target:
             #    os.unlink(filename)
 
 class Phony(Target):
-    def __init__(self, name, depends_on, run_before, run_after, artefact):
-        Target.__init__(self, name, depends_on, run_before, run_after)
+    def __init__(self, variable_deposit, name, depends_on, run_before, run_after, artefact):
+        Target.__init__(self, variable_deposit, name, depends_on, run_before, run_after)
 
     def build(self):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, name, depends_on, run_before, run_after, sources, link_with):
-        Target.__init__(self, name, depends_on, run_before, run_after)
+    def __init__(self, variable_deposit, name, depends_on, run_before, run_after, sources, link_with):
+        Target.__init__(self, variable_deposit, name, depends_on, run_before, run_after)
 
         self.sources = sources
         self.link_with = link_with
@@ -169,8 +169,8 @@ class Application(Target):
         return BUILD_DIR + "/" + self.name
 
 class StaticLibrary(Target):
-    def __init__(self, name, depends_on, run_before, run_after, sources):
-        Target.__init__(self, name, depends_on, run_before, run_after)
+    def __init__(self, variable_deposit, name, depends_on, run_before, run_after, sources):
+        Target.__init__(self, variable_deposit, name, depends_on, run_before, run_after)
 
         self.sources = sources
         self.compiler = CxxCompiler()
@@ -227,19 +227,36 @@ class VariableDeposit:
     def __init__(self):
         self.modules = {}
 
-    def eval(self, current_module, variable_name):
-        parts = variable_name.split(".")
-        debug(str(len(parts)))
+    def eval(self, current_module, s):
+        parts = s.split(".")
+
+        debug("dereferencing " + str(parts))
+
+        module = ''
+        name = ''
+        if len(parts) == 1:
+            module = current_module
+            name = parts[0]
+        elif len(parts) == 2:
+            module = parts[0][1:] # lose the $
+            name = "$" + parts[1]
+
+        value = self.modules[module][s]
+
+        return value
 
     def add(self, module_name, name, value):
         debug("adding variable in module " + module_name + " called " + name + " with value of " + value)
 
         if not module_name in self.modules:
             self.modules[module_name] = {}
-        pass
+
+        self.modules[module_name][name] = [value]
 
     def append(self, module_name, name, value):
-        pass
+        debug("appending variable in module " + module_name + " called " + name + " with value of " + value)
+        self.modules[module_name][name].append(value)
+        debug("  new value: " + str(self.modules[module_name][name]))
 
 class PakeFile:
     def __init__(self, variable_deposit, filename):
@@ -308,7 +325,9 @@ class PakeFile:
                 if token[0] == Tokenizer.TOKEN_LITERAL:
                     ret.append(token[1])
                 elif token[0] == Tokenizer.TOKEN_VARIABLE:
-                    for v in self.variables[token[1]]:
+                    # TODO: eval this later when all modules are parsed
+                    evaluated = self.variable_deposit.eval(self.name, token[1])
+                    for v in evaluated:
                         ret.append(v)
                 elif token[0] == Tokenizer.TOKEN_CLOSE_PARENTHESIS:
                     break
@@ -358,7 +377,7 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Application(target_name, depends_on, run_before, run_after, sources, link_with)
+        target = Application(self.variable_deposit, target_name, depends_on, run_before, run_after, sources, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
@@ -379,7 +398,7 @@ class PakeFile:
             else:
                 raise ParsingError()
 
-        target = StaticLibrary(target_name, depends_on, run_before, run_after, sources)
+        target = StaticLibrary(self.variable_deposit, target_name, depends_on, run_before, run_after, sources)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
@@ -402,7 +421,7 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Phony(target_name, depends_on, run_before, run_after, artefact)
+        target = Phony(self.variable_deposit, target_name, depends_on, run_before, run_after, artefact)
         self.__add_target(target)
 
     def __parse_target(self, it):
