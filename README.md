@@ -14,6 +14,7 @@ Examples
 target application Test1 sources(Test.cpp)
 `
 
+
 `
 target static_library Library sources(lib.cpp)
 target application Test sources(main.cpp) link_with(Library) depends_on(Library)
