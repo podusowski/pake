@@ -225,13 +225,17 @@ class Variable:
 
 class VariableDeposit:
     def __init__(self):
-        modules = {}
+        self.modules = {}
 
     def eval(self, current_module, variable_name):
         parts = variable_name.split(".")
         debug(str(len(parts)))
 
     def add(self, module_name, name, value):
+        debug("adding variable in module " + module_name + " called " + name + " with value of " + value)
+
+        if not module_name in self.modules:
+            self.modules[module_name] = {}
         pass
 
     def append(self, module_name, name, value):
@@ -444,10 +448,10 @@ class Buffer:
 
     def value(self):
         if self.eof():
-            debug("Read out of range: " + str(self.position))
+            debug("Read out of range: " + str(self.position), "TOKENIZER")
             raise Exception("eof")
 
-        debug("read: " + str(self.buf[self.position]))
+        debug("read: " + str(self.buf[self.position]), "TOKENIZER")
         return str(self.buf[self.position])
 
     def rewind(self, value = 1):
@@ -485,7 +489,7 @@ class Tokenizer:
         return ""
 
     def __add_token(self, token_type, content):
-        debug("token: " + str(token_type) + "|" + content)
+        debug("token: " + str(token_type) + "|" + content, "TOKENIZER")
         self.tokens.append((token_type, content))
 
     def __try_to_read_token(self, buf, what):
@@ -514,7 +518,7 @@ class Tokenizer:
         data = ''
 
         if self.__try_to_read_token(buf, '"""'):
-            debug("reading multine")
+            debug("reading multine", "TOKENIZER")
             while True:
                 if buf.eof():
                     raise Exception("parse error")
@@ -529,7 +533,7 @@ class Tokenizer:
 
                 buf.rewind()
         else:
-            debug("no multine")
+            debug("no multine", "TOKENIZER")
             buf.seek(pos)
 
         return False
@@ -640,9 +644,10 @@ class SourceTree:
                 if ext == ".pake":
                     yield(filename)
 
-def debug(s):
+def debug(s, env = None):
     if "DEBUG" in os.environ:
-        print(GRAY + "debug: " + s + RESET)
+        if env == None or env in os.environ:
+            print(GRAY + "debug: " + s + RESET)
 
 def info(s):
     print(s)
