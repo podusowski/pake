@@ -1,0 +1,5 @@
+# this is comment
+target application Test1 sources(Test.cpp) # this is also a comment
+
+target  application  Test2  sources ( Test.cpp  )   
+

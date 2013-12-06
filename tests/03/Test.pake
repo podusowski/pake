@@ -1,0 +1,7 @@
+set $sources _build/generated.cpp
+append $sources Test2.cpp
+
+set $cflags -pedantic
+
+target application Test sources(Test1.cpp $sources)
+
