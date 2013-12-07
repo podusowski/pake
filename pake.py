@@ -114,6 +114,10 @@ class CommonTargetParameters:
         self.run_before = None
         self.run_after = None
 
+class CommonCxxParameters:
+    def __init__(self):
+        self.sources = []
+
 class Target:
     def __init__(self, common_parameters):
         self.common_parameters = common_parameters
@@ -397,8 +401,18 @@ class PakeFile:
             else:
                 raise ParsingError(Token)
 
-    def __try_parse_target_common_parameters(self, common_parameters, it):
-        pass
+    def __try_parse_target_common_parameters(self, common_parameters, token, it):
+        if token[1] == "depends_on":
+            common_parameters.depends_on = self.__parse_list(it)
+            return True
+        elif token[1] == "run_before":
+            common_parameters.run_before = self.__parse_argument(it)
+            return True
+        elif token[1] == "run_after":
+            common_parameters.run_after = self.__parse_argument(it)
+            return True
+
+        return False
 
     def __parse_application_target(self, target_name, it):
         link_with = []
@@ -407,11 +421,9 @@ class PakeFile:
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                if token[1] == "sources": sources = self.__parse_list(it)
+                if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
+                elif token[1] == "sources": sources = self.__parse_list(it)
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
-                elif token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
                 else: raise ParsingError(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
@@ -427,10 +439,8 @@ class PakeFile:
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                if token[1] == "sources": sources = self.__parse_list(it)
-                elif token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
+                if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
+                elif token[1] == "sources": sources = self.__parse_list(it)
                 else: raise ParsingError()
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
@@ -447,9 +457,7 @@ class PakeFile:
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                if   token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
+                if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif token[1] == "artefact": artefact = self.__parse_argument(it)
                 else: raise ParsingError(token)
 
