@@ -26,10 +26,20 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 ```
 # external_library.pake
 set $library_dir _build/external_library/
+target phony external_library run_before(./do_some_cmake_build_or_something.sh)
 ```
 ```
 # Sample.pake
 target application Sample sources(main.cpp) library_dir($external_library.library_dir) link_with(external_library)
+```
+
+## Language elements
+
+```
+target phony [ run_before(SCRIPT) ] [ run_after(SCRIPT) ]
+target application [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIST) ] [ link_with(LIST) ] [ library_dir(LIST) ]
+target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIST) ]
+[ set | append ] VARIABLE_NAME VALUE
 ```
 
 ## Features
