@@ -115,7 +115,7 @@ class CommonTargetParameters:
         self.run_after = run_after
 
 class Target:
-    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after):
+    def __init__(self, common_parameters):
         self.common_parameters = common_parameters
 
     def __str__(self):
@@ -133,15 +133,15 @@ class Target:
             execute(cmd)
 
 class Phony(Target):
-    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, artefact):
-        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, artefact):
+        Target.__init__(self, common_parameters)
 
     def build(self):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, sources, link_with):
-        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, sources, link_with):
+        Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
         self.sources = sources
@@ -171,8 +171,8 @@ class Application(Target):
         return BUILD_DIR + "/" + self.common_parameters.name
 
 class StaticLibrary(Target):
-    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, sources):
-        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, sources):
+        Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
         self.sources = sources
@@ -418,7 +418,7 @@ class PakeFile:
                 raise ParsingError(token)
 
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
-        target = Application(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources, link_with)
+        target = Application(common_parameters, sources, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
@@ -440,7 +440,7 @@ class PakeFile:
                 raise ParsingError()
 
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
-        target = StaticLibrary(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources)
+        target = StaticLibrary(common_parameters, sources)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
@@ -464,7 +464,7 @@ class PakeFile:
                 raise ParsingError(token)
 
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
-        target = Phony(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, artefact)
+        target = Phony(common_parameters, artefact)
         self.__add_target(target)
 
     def __parse_target(self, it):
