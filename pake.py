@@ -101,53 +101,49 @@ class CxxArchiver:
     targets
 """
 
-class Target:
+class CommonTargetParameters:
     def __init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after):
+        assert isinstance(variable_deposit, VariableDeposit)
+        assert isinstance(module_name, str)
+        assert isinstance(name, str)
+
+        self.variable_deposit = variable_deposit
+        self.module_name = module_name
         self.name = name
         self.depends_on = depends_on
         self.run_before = run_before
         self.run_after = run_after
-        debug("run_after: " + str(self.run_after))
+
+class Target:
+    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after):
+        self.common_parameters = common_parameters
 
     def __str__(self):
-        return self.name
+        return self.common_parameters.name
 
     def before(self):
-        if self.run_before != None:
-            debug("running " + str(self.run_before))
-            execute(self.run_before)
+        self.__try_run(self.common_parameters.run_before)
 
     def after(self):
-        if self.run_after != None:
-            debug("running " + str(self.run_after))
-            execute(self.run_after)
+        self.__try_run(self.common_parameters.run_after)
 
-            #filename = ""
-            #try:
-            #    (fd, filename) = tempfile.mkstemp()
-            #    f = os.fdopen(fd, "w")
-            #    f.write(self.run_after)
-            #    f.close()
-
-            #    st = os.stat(filename)
-            #    os.chmod(filename, st.st_mode | stat.S_IEXEC)
-            #    execute(filename)
-            #finally:
-            #    os.unlink(filename)
+    def __try_run(self, cmd):
+        if cmd != None:
+            debug("running " + str(cmd))
+            execute(cmd)
 
 class Phony(Target):
-    def __init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after, artefact):
-        Target.__init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, artefact):
+        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
 
     def build(self):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after, sources, link_with):
-        Target.__init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, sources, link_with):
+        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
 
-        self.variable_deposit = variable_deposit
-        self.module_name = module_name
+        self.common_parameters = common_parameters
         self.sources = sources
         self.link_with = link_with
         self.compiler = CxxCompiler()
@@ -155,7 +151,7 @@ class Application(Target):
 
     def build(self):
         object_files = []
-        evaluated_sources = self.variable_deposit.eval(self.module_name, self.sources)
+        evaluated_sources = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.sources)
 
         debug("building application from " + str(evaluated_sources))
 
@@ -164,29 +160,28 @@ class Application(Target):
             object_files.append(object_file)
             self.compiler.build(object_file, source)
 
-        evaluated_link_with = self.variable_deposit.eval(self.module_name, self.link_with)
-        self.linker.build(self.__app_filename(self.name), object_files, evaluated_link_with)
+        evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
+        self.linker.build(self.__app_filename(self.common_parameters.name), object_files, evaluated_link_with)
 
     def __object_filename(self, in_filename):
-        out = BUILD_DIR + "/build." + self.name + "/" + in_filename + ".o"
+        out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
         return out
 
     def __app_filename(self, target_name):
-        return BUILD_DIR + "/" + self.name
+        return BUILD_DIR + "/" + self.common_parameters.name
 
 class StaticLibrary(Target):
-    def __init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after, sources):
-        Target.__init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after)
+    def __init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after, sources):
+        Target.__init__(self, common_parameters, variable_deposit, module_name, name, depends_on, run_before, run_after)
 
-        self.variable_deposit = variable_deposit
-        self.module_name = module_name
+        self.common_parameters = common_parameters
         self.sources = sources
         self.compiler = CxxCompiler()
         self.linker = CxxArchiver()
 
     def build(self):
         object_files = []
-        evaluated_sources = self.variable_deposit.eval(self.module_name, self.sources)
+        evaluated_sources = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.sources)
 
         debug("building static_library from " + str(self.sources))
 
@@ -198,11 +193,11 @@ class StaticLibrary(Target):
         self.linker.build(self.__lib_filename(), object_files)
 
     def __object_filename(self, in_filename):
-        out = BUILD_DIR + "/build." + self.name + "/" + in_filename + ".o"
+        out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
         return out
 
     def __lib_filename(self):
-        return BUILD_DIR + "/lib" + self.name + ".a"
+        return BUILD_DIR + "/lib" + self.common_parameters.name + ".a"
 
 """
     parser
@@ -334,7 +329,7 @@ class PakeFile:
         return root
 
     def __add_target(self, target):
-        debug("adding target: " + str(target) + ", depends_on: " + str(target.depends_on))
+        debug("adding target: " + str(target))
         self.targets.append(target)
 
     def __parse_set_or_append(self, it, append):
@@ -422,7 +417,8 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Application(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources, link_with)
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
+        target = Application(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
@@ -443,7 +439,8 @@ class PakeFile:
             else:
                 raise ParsingError()
 
-        target = StaticLibrary(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources)
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
+        target = StaticLibrary(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, sources)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
@@ -466,7 +463,8 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Phony(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, artefact)
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
+        target = Phony(common_parameters, self.variable_deposit, self.name, target_name, depends_on, run_before, run_after, artefact)
         self.__add_target(target)
 
     def __parse_target(self, it):
@@ -694,9 +692,9 @@ class SourceTree:
         found = False
         for f in self.files:
             for t in f.targets:
-                if t.name == target:
+                if t.common_parameters.name == target:
                     found = True
-                    evalueated_depends_on = self.variable_deposit.eval(f.name, t.depends_on)
+                    evalueated_depends_on = self.variable_deposit.eval(f.name, t.common_parameters.depends_on)
                     for dependency in evalueated_depends_on:
                         debug(str(t) + " depends on " + dependency)
                         self.build(dependency)
