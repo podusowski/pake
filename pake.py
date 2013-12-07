@@ -309,7 +309,7 @@ class VariableDeposit:
         self.modules[module_name][name].append(value)
         debug("  new value: " + str(self.modules[module_name][name]))
 
-class PakeFile:
+class Module:
     def __init__(self, variable_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(filename, str)
@@ -701,7 +701,7 @@ class SourceTree:
         self.variable_deposit = VariableDeposit()
         self.files = []
         for filename in self.__find_pake_files():
-            self.files.append(PakeFile(self.variable_deposit, filename))
+            self.files.append(Module(self.variable_deposit, filename))
 
     def build(self, target):
         debug("building " + target)
