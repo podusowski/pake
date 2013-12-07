@@ -27,6 +27,7 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
  * Minimal tree polution (single `_build` directory with the results)
  * Easy project integration - just put `pake.py` inside your tree and write `.pake` files
  * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
+ * Shared variables. You can easily read variable from other module
  * No new language to learn, if you want some logic, you write a shell script
  * No "build system generation", pake is just building your software
 
