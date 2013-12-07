@@ -9,6 +9,19 @@ Pake is trying to address lack of good alternative for plain make when it comes 
 Unlike other popular C++ build system CMake, pake is not a build system generator. Instead it just compiles your stuff requiring from you as less as it can.
 
 
+## Quick start
+```
+mkdir my_project
+cd my_project
+wget https://raw.github.com/podusowski/pake/master/pake.py
+chmod +x pake.py
+echo -e "#include <iostream>\nint main() { std::cout << \"Hello\" << std::endl; }" > main.cpp
+echo "target application Hello sources(main.cpp)" > Hello.pake
+./pake.py Hello
+_build/Hello
+```
+
+
 ## Examples
 
 
