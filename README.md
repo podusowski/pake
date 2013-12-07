@@ -46,7 +46,13 @@ target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIS
 
 Unlike make, where you're responsible to deliver means to build the artefact, pake has several, dedicated target types and uses it's own understanding of toolchain to provide deliverables.
 
-### `application`
+Each target type might call external script, to do that, you can use either `run_before` or `run_after` parameter. See the example.
+
+```
+target type phony tests run_before(./run_tests.sh)
+```
+
+### Application
 The most common target which you can use. It builds complete C++ application from sources or libraries.
 
 #### Example
@@ -55,11 +61,11 @@ The most common target which you can use. It builds complete C++ application fro
 target application sources(main.cpp utils.cpp)
 ```
 
-### `static_library`
+### Static library
 Static library is just packed object files which can be later used by other targets.
 
 
-### `phony`
+### Phony
 This target does nothing when it comes to pake's compiler support. It can be used to group other targets or perform build using external techniques.
 
 ## Variables
