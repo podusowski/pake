@@ -249,13 +249,6 @@ class ParsingError(Exception):
             msg = msg + str(i) + "\n"
         return msg
 
-class Variable:
-    def __init__(token):
-        self.token = token
-
-    def value():
-        return self.value
-
 class VariableDeposit:
     def __init__(self):
         self.modules = {}
