@@ -144,18 +144,20 @@ class Phony(Target):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, common_parameters, sources, link_with):
+    def __init__(self, common_parameters, common_cxx_parameters, link_with):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
-        self.sources = sources
+        self.common_cxx_parameters = common_cxx_parameters
         self.link_with = link_with
         self.compiler = CxxCompiler()
         self.linker = CxxLinker()
 
     def build(self):
         object_files = []
-        evaluated_sources = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.sources)
+        evaluated_sources = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            self.common_cxx_parameters.sources)
 
         debug("building application from " + str(evaluated_sources))
 
@@ -175,19 +177,21 @@ class Application(Target):
         return BUILD_DIR + "/" + self.common_parameters.name
 
 class StaticLibrary(Target):
-    def __init__(self, common_parameters, sources):
+    def __init__(self, common_parameters, common_cxx_parameters):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
-        self.sources = sources
+        self.common_cxx_parameters = common_cxx_parameters
         self.compiler = CxxCompiler()
         self.linker = CxxArchiver()
 
     def build(self):
         object_files = []
-        evaluated_sources = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.sources)
+        evaluated_sources = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            self.common_cxx_parameters.sources)
 
-        debug("building static_library from " + str(self.sources))
+        debug("building static_library from " + str(evaluated_sources))
 
         for source in evaluated_sources:
             object_file = self.__object_filename(source)
@@ -414,15 +418,23 @@ class PakeFile:
 
         return False
 
+    def __try_parse_common_cxx_parameters(self, common_cxx_parameters, token, it):
+        if token[1] == "sources":
+            common_cxx_parameters.sources = self.__parse_list(it)
+            return True
+
+        return False
+
     def __parse_application_target(self, target_name, it):
         link_with = []
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+        common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif token[1] == "sources": sources = self.__parse_list(it)
+                elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
                 else: raise ParsingError(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
@@ -430,29 +442,31 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        target = Application(common_parameters, sources, link_with)
+        target = Application(common_parameters, common_cxx_parameters, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+        common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif token[1] == "sources": sources = self.__parse_list(it)
+                elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 else: raise ParsingError()
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError()
 
-        target = StaticLibrary(common_parameters, sources)
+        target = StaticLibrary(common_parameters, common_cxx_parameters)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
         artefact = None
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+        common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
