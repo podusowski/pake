@@ -42,6 +42,26 @@ target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIS
 [ set | append ] VARIABLE_NAME VALUE
 ```
 
+## Modules and variables
+
+Pake tree consists of so called modules, those are simply .pake files somewhere in your project sources. You don't have to include anything, the idea is that pake walks through all directories looking for the modules. There is no limitation on how many targets are inside the module. Each variable has it's module origin, so although you can create as many variables you want, their names can't duplicate across one module (they can however in many different modules).
+
+The neat thing is that you can read variable defined in other module, see the example how to do that.
+
+### Example
+
+```
+# A.pake
+set $sources a.cpp
+target application sources($sources)
+```
+
+```
+# B.pake
+set $sources b.cpp
+target application sources($sources $A.sources)
+```
+
 ## Features
 
  * C++ header dependency resolver
