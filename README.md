@@ -28,8 +28,10 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
  * Easy project integration - just put `pake.py` inside your tree and write `.pake` files
  * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
  * No new language to learn, if you want some logic, you write a shell script
+ * No "build system generation", pake is just building your software
 
 ## Planned features
 
  * Toolchain configuration
  * Parallel builds
+
