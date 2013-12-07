@@ -1,4 +1,4 @@
-pake
+pake (early alpha)
 ====
 Friendly C++ build system which doesn't follow trends.
 
@@ -25,4 +25,11 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 
  * C++ header dependency resolver
  * Minimal tree polution (single `_build` directory with the results)
+ * Easy project integration - just put `pake.py` inside your tree and write `.pake` files
+ * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
+ * No new language to learn, if you want some logic, you write a shell script
 
+## Planned features
+
+ * Toolchain configuration
+ * Parallel builds
