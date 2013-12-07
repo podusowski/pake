@@ -266,6 +266,33 @@ class VariableDeposit:
         debug("  " + str(ret))
         return ret
 
+    def __eval_literal(self, s):
+        debug("evaluating literal: " + s)
+        ret = ""
+
+        STATE_READING = 1
+        STATE_WAITING_FOR_PARENTHESIS = 2
+        STATE_READING_NAME = 3
+
+        variable_name = ''
+        state = STATE_READING
+
+        for c in s:
+            if state == STATE_READING:
+                if c == "$":
+                    state = STATE_WAITING_FOR_PARENTHESIS
+                else:
+                    s = s + c
+            elif state == STATE_WAITING_FOR_PARENTHESIS:
+                if c == "{":
+                    state = STATE_READING_NAME
+                else:
+                    raise ParsingError("expecting { after $")
+            elif state == STATE_READING_NAME:
+                variable_name = variable_name + c
+
+        return s
+
     def add(self, module_name, name, value):
         debug("adding variable in module " + module_name + " called " + name + " with value of " + value)
 
@@ -519,7 +546,7 @@ class Tokenizer:
     def __init__(self, filename):
         buf = Buffer(filename)
         self.tokens = []
-        self.__tokenize_whitespace(buf)
+        self.__tokenize(buf)
         debug("tokens: " + str(self.tokens))
 
     def __is_valid_identifier_char(self, char):
@@ -639,7 +666,7 @@ class Tokenizer:
 
         return ret
 
-    def __tokenize_whitespace(self, buf):
+    def __tokenize(self, buf):
         while not buf.eof():
             ret = (
                 self.__try_tokenize_comment(buf) or
