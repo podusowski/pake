@@ -102,7 +102,7 @@ class CxxArchiver:
 """
 
 class CommonTargetParameters:
-    def __init__(self, variable_deposit, module_name, name, depends_on, run_before, run_after):
+    def __init__(self, variable_deposit, module_name, name):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(module_name, str)
         assert isinstance(name, str)
@@ -110,9 +110,9 @@ class CommonTargetParameters:
         self.variable_deposit = variable_deposit
         self.module_name = module_name
         self.name = name
-        self.depends_on = depends_on
-        self.run_before = run_before
-        self.run_after = run_after
+        self.depends_on = []
+        self.run_before = None
+        self.run_after = None
 
 class Target:
     def __init__(self, common_parameters):
@@ -397,64 +397,59 @@ class PakeFile:
             else:
                 raise ParsingError(Token)
 
+    def __try_parse_target_common_parameters(self, common_parameters, it):
+        pass
+
     def __parse_application_target(self, target_name, it):
         link_with = []
-        depends_on = []
-        run_before = None
-        run_after = None
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "sources": sources = self.__parse_list(it)
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
-                elif token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": run_after = self.__parse_argument(it)
+                elif token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
+                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
                 else: raise ParsingError(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError(token)
 
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
         target = Application(common_parameters, sources, link_with)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
-        depends_on = []
-        run_before = None
-        run_after = None
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "sources": sources = self.__parse_list(it)
-                elif token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": run_after = self.__parse_argument(it)
+                elif token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
+                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
                 else: raise ParsingError()
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError()
 
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
         target = StaticLibrary(common_parameters, sources)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
-        depends_on = []
-        run_before = None
-        run_after = None
         artefact = None
+        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
 
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                if   token[1] == "depends_on": depends_on = self.__parse_list(it)
-                elif token[1] == "run_before": run_before = self.__parse_argument(it)
-                elif token[1] == "run_after": run_after = self.__parse_argument(it)
+                if   token[1] == "depends_on": common_parameters.depends_on = self.__parse_list(it)
+                elif token[1] == "run_before": common_parameters.run_before = self.__parse_argument(it)
+                elif token[1] == "run_after": common_parameters.run_after = self.__parse_argument(it)
                 elif token[1] == "artefact": artefact = self.__parse_argument(it)
                 else: raise ParsingError(token)
 
@@ -463,7 +458,6 @@ class PakeFile:
             else:
                 raise ParsingError(token)
 
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name, depends_on, run_before, run_after)
         target = Phony(common_parameters, artefact)
         self.__add_target(target)
 
