@@ -42,11 +42,24 @@ target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIS
 [ set | append ] VARIABLE_NAME VALUE
 ```
 
+## Targets
+
+Unlike make, where you're responsible to deliver means to build the artefact, pake has several, dedicated target types and uses it's own understanding of toolchain to provide deliverables.
+
+### `application`
+The most common target which you can use. It builds complete C++ application from sources or libraries.
+
+### `static_library`
+Static library is just packed object files which can be later used by other targets.
+
+### `phony`
+This target does nothing when it comes to pake's compiler support. It can be used to group other targets or perform build using external techniques.
+
 ## Variables
 
 Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like some_file.cpp) are not surrounded by quotation marks and pake needs to distinguish one another.
 
-## Modules and variables
+## Modules
 
 Pake tree consists of so called modules, those are simply .pake files somewhere in your project sources. You don't have to include anything, the idea is that pake walks through all directories looking for the modules. There is no limitation on how many targets are inside the module. Each variable has it's module origin, so although you can create as many variables you want, their names can't duplicate across one module (they can however in many different modules).
 
