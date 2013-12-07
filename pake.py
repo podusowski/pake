@@ -43,6 +43,10 @@ def execute(command):
     C++ compiler support
 """
 
+class CxxToolchain:
+    def __init__(self):
+        self.cxx_compiler = CxxCompiler()
+
 class CxxCompiler:
     def __init__(self):
         self.compiler_cmd = "c++"
@@ -519,15 +523,9 @@ class Module:
         elif target_type == "phony":           self.__parse_phony(target_name, it)
         else: raise ParsingError(token, "unknown target type: " + target_type)
 
-    def __parse(self):
-        it = iter(self.tokens)
-        error_msg = "expected set, append or target directive"
+    def __parse_directive(self, it):
         while True:
-            try:
-                token = it.next()
-            except StopIteration:
-                debug("eof")
-                break
+            token = it.next()
 
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "set" or token[1] == "append": self.__parse_set_or_append(it, token[1] == "append")
@@ -537,7 +535,16 @@ class Module:
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 continue
             else:
-                raise ParsingError(token, error_msg)
+                return False
+
+    def __parse(self):
+        it = iter(self.tokens)
+
+        try:
+            if not self.__parse_directive(it):
+                raise ParsingError()
+        except StopIteration:
+            debug("eof")
 
 class Buffer:
     def __init__(self, filename):
