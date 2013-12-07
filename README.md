@@ -21,6 +21,17 @@ target static_library Library sources(lib.cpp)
 target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 ```
 
+### Variable sharing
+
+```
+# external_library.pake
+set $library_dir _build/external_library/
+```
+```
+# Sample.pake
+target application Sample sources(main.cpp) library_dir($external_library.library_dir) link_with(external_library)
+```
+
 ## Features
 
  * C++ header dependency resolver
@@ -29,6 +40,7 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
  * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
  * Shared variables. You can easily read variable from other module
  * No new language to learn, if you want some logic, you write a shell script
+ * Very simple syntax. Only 3 directives: `target`, `set` and `append`
  * No "build system generation", pake is just building your software
 
 ## Planned features
