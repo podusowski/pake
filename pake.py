@@ -67,11 +67,19 @@ class CxxCompiler:
         return ret
 
 class CxxLinker:
-    def build(self, out_filename, in_filenames, link_with):
+    def build(self, out_filename, in_filenames, link_with, library_dir):
         if is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
-            debug("link " + str(in_filenames) + ", with libs: " + str(link_with) + " -> " + out_filename)
+            debug("linker")
+            debug("  files: " + str(in_filenames))
+            debug("  with libs: " + str(link_with))
+            debug("  lib dir: " + str(library_dir))
+
+            parameters = ""
+            for directory in library_dir:
+                parameters += "-L" + directory + " "
+
             info(BOLD + "linking " + RESET + out_filename)
-            execute("c++ -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with))
+            execute("c++ -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
         else:
             info(BOLD + out_filename + RESET + " is up to date")
 
@@ -144,12 +152,13 @@ class Phony(Target):
         debug("phony build")
 
 class Application(Target):
-    def __init__(self, common_parameters, common_cxx_parameters, link_with):
+    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dir):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
         self.common_cxx_parameters = common_cxx_parameters
         self.link_with = link_with
+        self.library_dir = library_dir
         self.compiler = CxxCompiler()
         self.linker = CxxLinker()
 
@@ -167,7 +176,13 @@ class Application(Target):
             self.compiler.build(object_file, source)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
-        self.linker.build(self.__app_filename(self.common_parameters.name), object_files, evaluated_link_with)
+        evaluated_library_dir = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dir)
+
+        self.linker.build(
+            self.__app_filename(self.common_parameters.name),
+            object_files,
+            evaluated_link_with,
+            evaluated_library_dir)
 
     def __object_filename(self, in_filename):
         out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
@@ -427,6 +442,7 @@ class Module:
 
     def __parse_application_target(self, target_name, it):
         link_with = []
+        library_dir = []
         common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
         common_cxx_parameters = CommonCxxParameters()
 
@@ -436,13 +452,14 @@ class Module:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
+                elif token[1] == "library_dir": library_dir = self.__parse_list(it)
                 else: raise ParsingError(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
                 raise ParsingError(token)
 
-        target = Application(common_parameters, common_cxx_parameters, link_with)
+        target = Application(common_parameters, common_cxx_parameters, link_with, library_dir)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
