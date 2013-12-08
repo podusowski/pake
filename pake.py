@@ -820,8 +820,14 @@ def info(s):
     print(s)
 
 def main():
-    target_name = sys.argv[1]
     tree = SourceTree()
-    tree.build(target_name)
+
+    if len(sys.argv) > 1:
+        target_name = sys.argv[1]
+        tree.build(target_name)
+    else:
+        for module in tree.files:
+            for t in module.targets:
+                print(t)
 
 main()
