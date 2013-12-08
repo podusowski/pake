@@ -77,8 +77,6 @@ When bullding target, pake is changing working directory to the one in which `.p
 ### Application
 The most common target which you can use. It builds complete C++ application from sources or libraries.
 
-#### Example
-
 ```
 target application HelloWorld sources(main.cpp utils.cpp)
 ```
@@ -86,6 +84,9 @@ target application HelloWorld sources(main.cpp utils.cpp)
 ### Static library
 Static library is just packed object files which can be later used by other targets.
 
+```
+target static_library HelloLibrary sources(utils.cpp)
+```
 
 ### Phony
 This target does nothing when it comes to pake's compiler support. It can be used to group other targets or perform build using external techniques.
