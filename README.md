@@ -3,8 +3,9 @@ pake (early alpha)
 
 Friendly C++ build system which doesn't follow trends.
 
-*python*ake
-*painless*ake
+**python**ake
+
+**painless**ake
 
 ## Motivation ##
 Pake is trying to address lack of good alternative for plain make when it comes to C++ development. Although there is a cmake, qmake and bunch of other projects, either provided painless project management so I decided to give a shot in implementing my own vision of how build system should be usable.
@@ -120,6 +121,11 @@ set $sources b.cpp
 target application sources($sources $A.sources)
 ```
 
+## Special variables ##
+
+### __path ###
+
+This variable is created for each module and it contains directory where this module was found.
 
 ## Features ##
 
