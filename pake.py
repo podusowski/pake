@@ -87,6 +87,9 @@ class CxxToolchain:
     def static_library_filename(self, target_name):
         return BUILD_DIR + "/lib" + target_name + ".a"
 
+    def application_filename(self, target_name):
+        return BUILD_DIR + "/" + target_name
+
     def __scan_includes(self, in_filename):
         debug("scanning includes for " + in_filename)
         ret = []
@@ -182,13 +185,10 @@ class Application(Target):
         evaluated_library_dir = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dir)
 
         self.toolchain.link_application(
-            self.__app_filename(self.common_parameters.name),
+            self.toolchain.application_filename(self.common_parameters.name),
             object_files,
             evaluated_link_with,
             evaluated_library_dir)
-
-    def __app_filename(self, target_name):
-        return BUILD_DIR + "/" + self.common_parameters.name
 
 class StaticLibrary(Target):
     def __init__(self, common_parameters, common_cxx_parameters):
@@ -211,10 +211,9 @@ class StaticLibrary(Target):
             self.toolchain.build_object(object_file, source)
             object_files.append(object_file)
 
-        self.toolchain.link_static_library(self.__lib_filename(), object_files)
-
-    def __lib_filename(self):
-        return BUILD_DIR + "/lib" + self.common_parameters.name + ".a"
+        self.toolchain.link_static_library(
+            self.toolchain.static_library_filename(self.common_parameters.name),
+            object_files)
 
 """
     parser
