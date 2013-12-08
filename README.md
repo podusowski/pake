@@ -1,15 +1,18 @@
 pake (early alpha)
-====
+==================
+
 Friendly C++ build system which doesn't follow trends.
 
+*python*ake
+*painless*ake
 
-## Motivation
+## Motivation ##
 Pake is trying to address lack of good alternative for plain make when it comes to C++ development. Although there is a cmake, qmake and bunch of other projects, either provided painless project management so I decided to give a shot in implementing my own vision of how build system should be usable.
 
 Unlike other popular C++ build system CMake, pake is not a build system generator. Instead it just compiles your stuff requiring from you as less as it can.
 
 
-## Quick start
+## Quick start ##
 ```
 mkdir my_project
 cd my_project
@@ -22,27 +25,27 @@ _build/Hello
 ```
 
 
-## Examples
+## Examples ##
 
 
-### The simplest sctipt you can get
+### The simplest sctipt you can get ###
 ```
 target application Test1 sources(Test.cpp)
 ```
 
 
-### Static library example
+### Static library example ###
 
 ```
-target static_library Library sources(lib.cpp)
+target static\_library Library sources(lib.cpp)
 target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 ```
 
 
-### Variable sharing
+### Variable sharing ###
 
 ```
-# external_library.pake
+# external\_library.pake
 set $library_dir _build/external_library/
 target phony external_library run_before(./do_some_cmake_build_or_something.sh)
 ```
@@ -52,7 +55,7 @@ target application Sample sources(main.cpp) library_dir($external_library.librar
 ```
 
 
-## Language elements
+## Language elements ##
 
 ```
 target phony [ run_before(SCRIPT) ] [ run_after(SCRIPT) ]
@@ -62,11 +65,11 @@ target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIS
 ```
 
 
-## Targets
+## Targets ##
 
 Unlike make, where you're responsible to deliver means to build the artefact, pake has several, dedicated target types and uses it's own understanding of toolchain to provide deliverables.
 
-Each target type might call external script, to do that, you can use either `run_before` or `run_after` parameter. See the example.
+Each target type might call external script, to do that, you can use either `run\_before` or `run\_after` parameter. See the example.
 
 ```
 target type phony tests run_before(./run_tests.sh)
@@ -74,36 +77,36 @@ target type phony tests run_before(./run_tests.sh)
 
 When bullding target, pake is changing working directory to the one in which `.pake` file for current target is located.
 
-Targets that involve compiling some source code (like `application`) accepts additional `include_dirs` parameter in with additional directories might be pointed to the compiler.
+Targets that involve compiling some source code (like `application`) accepts additional `include\_dirs` parameter in with additional directories might be pointed to the compiler.
 
-### Application
+### Application ###
 The most common target which you can use. It builds complete C++ application from sources or libraries.
 
 ```
 target application HelloWorld sources(main.cpp utils.cpp)
 ```
 
-### Static library
+### Static library ###
 Static library is just packed object files which can be later used by other targets.
 
 ```
 target static_library HelloLibrary sources(utils.cpp)
 ```
 
-### Phony
+### Phony ###
 This target does nothing when it comes to pake's compiler support. It can be used to group other targets or perform build using external techniques.
 
-## Variables
+## Variables ##
 
-Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like `some_file.cpp`) are not surrounded by quotation marks and pake needs to distinguish one another.
+Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like `some\_file.cpp`) are not surrounded by quotation marks and pake needs to distinguish one another.
 
-## Modules
+## Modules ##
 
 Pake tree consists of so called modules, those are simply `.pake` files somewhere in your project sources. You don't have to include anything, the idea is that pake walks through all directories looking for the modules. There is no limitation on how many targets are inside the module. Each variable has it's module origin, so although you can create as many variables you want, their names can't duplicate across one module (they can however in many different modules).
 
 The neat thing is that you can read variable defined in other module, see the example how to do that.
 
-### Example
+### Example ###
 
 ```
 # A.pake
@@ -118,10 +121,10 @@ target application sources($sources $A.sources)
 ```
 
 
-## Features
+## Features ##
 
  * C++ header dependency resolver
- * Minimal tree pollution (single `_build` directory with the results)
+ * Minimal tree pollution (single `\_build` directory with the results)
  * Easy project integration - just put `pake.py` inside your tree and write `.pake` files
  * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
  * Shared variables. You can easily read variable from other module
@@ -130,13 +133,13 @@ target application sources($sources $A.sources)
  * No "build system generation", pake is just building your software
 
 
-## Drawbacks
+## Drawbacks ##
 
  * pake is not a programming language and never will be, to do advanced things like finding the package you should use normal language such as bash or python.
  * Finding `.pake` files is a big feature but it might also be some pain in the ass when used in large projects
 
 
-## Planned features
+## Planned features ##
 
  * Toolchain configuration
  * Parallel builds
