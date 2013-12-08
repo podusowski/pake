@@ -70,7 +70,7 @@ class CxxToolchain:
                 parameters += "-L" + directory + " "
 
             info(BOLD + "linking " + RESET + out_filename)
-            execute("c++ -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
+            execute(self.compiler_cmd + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
         else:
             info(BOLD + out_filename + RESET + " is up to date")
 
@@ -358,6 +358,13 @@ class VariableDeposit:
 
     def append(self, module_name, name, value):
         debug("appending variable in module " + module_name + " called " + name + " with value of " + value)
+
+        if not module_name in self.modules:
+            self.modules[module_name] = {}
+
+        if not name in self.modules[module_name]:
+            self.modules[module_name][name] = []
+
         self.modules[module_name][name].append(value)
         debug("  new value: " + str(self.modules[module_name][name]))
 
@@ -372,7 +379,6 @@ class Module:
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
-        self.variables = {}
         self.targets = []
         self.base_dir = os.path.dirname(filename)
 
@@ -402,15 +408,9 @@ class Module:
         else:
             raise ParsingError(token)
 
-        if not append:
-            self.variables[variable_name] = []
-
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                self.variables[variable_name].append(token[1])
-                debug("new variable value: " + variable_name + ": " + str(self.variables[variable_name]))
-
                 if append:
                     self.variable_deposit.append(self.name, variable_name, token[1])
                 else:

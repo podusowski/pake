@@ -1,4 +1,4 @@
-set $sources _build/generated.cpp
+append $sources _build/generated.cpp
 append $sources Test2.cpp
 
 set $cflags -pedantic
