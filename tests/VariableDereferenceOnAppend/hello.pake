@@ -1,0 +1,4 @@
+append $source hello.cpp
+append $sources $source
+target application hello sources($sources)
+

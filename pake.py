@@ -278,18 +278,11 @@ class ParsingError(Exception):
         self.token = token
         self.hint = hint
 
-        import traceback, os.path
-        self.traceback = traceback.extract_stack()
-
     def __str__(self):
         (t, c) = self.token
         msg = "parsing error, unexpected token: " + str(t) + "|" + str(c)
         if self.hint != None:
             msg = msg + ", hint: " + self.hint
-
-        msg = msg + "\ntraceback:\n"
-        for i in self.traceback:
-            msg = msg + str(i) + "\n"
         return msg
 
 class VariableDeposit:
@@ -317,7 +310,11 @@ class VariableDeposit:
                     name = "$" + parts[1]
 
                 for value in self.modules[module][name]:
-                    ret.append(value)
+                    if value[0] == "$":
+                        re = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, value)])
+                        for value in re: ret.append(value)
+                    else:
+                        ret.append(value)
             else:
                 raise ParsingError("")
 
@@ -413,7 +410,7 @@ class Module:
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Tokenizer.TOKEN_LITERAL or token[0] == Tokenizer.TOKEN_VARIABLE:
                 if append:
                     self.variable_deposit.append(self.name, variable_name, token[1])
                 else:
@@ -823,13 +820,8 @@ def info(s):
     print(s)
 
 def main():
-    #try:
-        target_name = sys.argv[1]
-        tree = SourceTree()
-        tree.build(target_name)
-
-    #except Exception as e:
-    #    print(BOLD_RED + "error: " + RESET + str(e))
-    #    sys.exit(1)
+    target_name = sys.argv[1]
+    tree = SourceTree()
+    tree.build(target_name)
 
 main()
