@@ -1,0 +1,2 @@
+target application hello sources(hello.cpp) include_dirs($utils.__path)
+

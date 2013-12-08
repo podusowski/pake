@@ -381,7 +381,10 @@ class Module:
 
         self.__parse()
 
-        debug("variables: " + str(self.variables))
+        self.variable_deposit.add(
+            self.name,
+            "$__path",
+            os.getcwd() + "/" + os.path.dirname(self.filename))
 
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
