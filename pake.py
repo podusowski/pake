@@ -10,7 +10,7 @@ BOLD = '\033[1m'
 GRAY = '\033[90m'
 RED = '\033[31m'
 BOLD_RED = '\033[1;31m'
-BUILD_DIR = "_build"
+BUILD_DIR = os.getcwd() + "/_build"
 
 """
     utilities
@@ -117,12 +117,13 @@ class CxxToolchain:
 """
 
 class CommonTargetParameters:
-    def __init__(self, variable_deposit, module_name, name):
+    def __init__(self, variable_deposit, root_path, module_name, name):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(module_name, str)
         assert isinstance(name, str)
 
         self.variable_deposit = variable_deposit
+        self.root_path = root_path
         self.module_name = module_name
         self.name = name
         self.depends_on = []
@@ -141,10 +142,16 @@ class Target:
         return self.common_parameters.name
 
     def before(self):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
         self.__try_run(self.common_parameters.run_before)
+        os.chdir(root_dir)
 
     def after(self):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
         self.__try_run(self.common_parameters.run_after)
+        os.chdir(root_dir)
 
     def __try_run(self, cmd):
         if cmd != None:
@@ -169,6 +176,9 @@ class Application(Target):
         self.toolchain = CxxToolchain()
 
     def build(self):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
         object_files = []
         evaluated_sources = self.common_parameters.variable_deposit.eval(
             self.common_parameters.module_name,
@@ -190,6 +200,8 @@ class Application(Target):
             evaluated_link_with,
             evaluated_library_dir)
 
+        os.chdir(root_dir)
+
 class StaticLibrary(Target):
     def __init__(self, common_parameters, common_cxx_parameters):
         Target.__init__(self, common_parameters)
@@ -199,6 +211,9 @@ class StaticLibrary(Target):
         self.toolchain = CxxToolchain()
 
     def build(self):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
         object_files = []
         evaluated_sources = self.common_parameters.variable_deposit.eval(
             self.common_parameters.module_name,
@@ -214,6 +229,8 @@ class StaticLibrary(Target):
         self.toolchain.link_static_library(
             self.toolchain.static_library_filename(self.common_parameters.name),
             object_files)
+
+        os.chdir(root_dir)
 
 """
     parser
@@ -429,7 +446,13 @@ class Module:
     def __parse_application_target(self, target_name, it):
         link_with = []
         library_dir = []
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+
+        common_parameters = CommonTargetParameters(
+            self.variable_deposit,
+            os.path.dirname(self.filename),
+            self.name,
+            target_name)
+
         common_cxx_parameters = CommonCxxParameters()
 
         while True:
@@ -449,7 +472,12 @@ class Module:
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+        common_parameters = CommonTargetParameters(
+            self.variable_deposit,
+            os.path.dirname(self.filename),
+            self.name,
+            target_name)
+
         common_cxx_parameters = CommonCxxParameters()
 
         while True:
@@ -468,7 +496,13 @@ class Module:
 
     def __parse_phony(self, target_name, it):
         artefact = None
-        common_parameters = CommonTargetParameters(self.variable_deposit, self.name, target_name)
+
+        common_parameters = CommonTargetParameters(
+            self.variable_deposit,
+            os.path.dirname(self.filename),
+            self.name,
+            target_name)
+
         common_cxx_parameters = CommonCxxParameters()
 
         while True:

@@ -1,0 +1,2 @@
+target application Hello sources(main.cpp)
+target static_library HelloLibrary sources(main.cpp)
