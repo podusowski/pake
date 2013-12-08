@@ -49,14 +49,14 @@ class CxxToolchain:
         self.compiler_flags = "-I."
         self.archiver_cmd = "ar"
 
-    def build_object(self, out_filename, in_filename):
-        prerequisites = self.__scan_includes(in_filename)
+    def build_object(self, out_filename, in_filename, include_dirs):
+        prerequisites = self.__scan_includes(in_filename, include_dirs)
         prerequisites.append(in_filename)
 
         if is_any_newer_than(prerequisites, out_filename):
             info(BOLD + "c++" + RESET + " " + in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
-            execute(self.compiler_cmd + " " + self.compiler_flags + " -c -o " + out_filename + " " + in_filename)
+            execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs) + " -c -o " + out_filename + " " + in_filename)
 
     def link_application(self, out_filename, in_filenames, link_with, library_dir):
         if is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
@@ -90,10 +90,10 @@ class CxxToolchain:
     def application_filename(self, target_name):
         return BUILD_DIR + "/" + target_name
 
-    def __scan_includes(self, in_filename):
+    def __scan_includes(self, in_filename, include_dirs):
         debug("scanning includes for " + in_filename)
         ret = []
-        out = execute(self.compiler_cmd + " " + self.compiler_flags + " -M " + in_filename).split()
+        out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs) + " -M " + in_filename).split()
         for token in out[2:]:
             if token != "\\":
                 ret.append(token)
@@ -103,6 +103,20 @@ class CxxToolchain:
         ret = "-L " + BUILD_DIR + " "
         for lib in link_with:
             ret = ret + " -l" + lib
+        return ret
+
+    def __prepare_compiler_flags(self, include_dirs):
+        ret = self.compiler_flags + " "
+        ret += self.__prepare_include_dirs_parameters(include_dirs) + " "
+        return ret
+
+    def __prepare_include_dirs_parameters(self, include_dirs):
+        ret = ""
+        for include_dir in include_dirs:
+            ret += "-I" + include_dir + " "
+
+        debug("include parameters: " + ret)
+
         return ret
 
     def __are_libs_newer_than_target(self, link_with, target):
@@ -133,6 +147,7 @@ class CommonTargetParameters:
 class CommonCxxParameters:
     def __init__(self):
         self.sources = []
+        self.include_dirs = []
 
 class Target:
     def __init__(self, common_parameters):
@@ -184,12 +199,16 @@ class Application(Target):
             self.common_parameters.module_name,
             self.common_cxx_parameters.sources)
 
+        evaluated_include_dirs = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            self.common_cxx_parameters.include_dirs)
+
         debug("building application from " + str(evaluated_sources))
 
         for source in evaluated_sources:
             object_file = self.toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
-            self.toolchain.build_object(object_file, source)
+            self.toolchain.build_object(object_file, source, evaluated_include_dirs)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dir = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dir)
@@ -219,11 +238,15 @@ class StaticLibrary(Target):
             self.common_parameters.module_name,
             self.common_cxx_parameters.sources)
 
+        evaluated_include_dirs = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            self.common_cxx_parameters.include_dirs)
+
         debug("building static_library from " + str(evaluated_sources))
 
         for source in evaluated_sources:
             object_file = self.toolchain.object_filename(self.common_parameters.name, source)
-            self.toolchain.build_object(object_file, source)
+            self.toolchain.build_object(object_file, source, evaluated_include_dirs)
             object_files.append(object_file)
 
         self.toolchain.link_static_library(
@@ -439,6 +462,9 @@ class Module:
     def __try_parse_common_cxx_parameters(self, common_cxx_parameters, token, it):
         if token[1] == "sources":
             common_cxx_parameters.sources = self.__parse_list(it)
+            return True
+        elif token[1] == "include_dirs":
+            common_cxx_parameters.include_dirs = self.__parse_list(it)
             return True
 
         return False
