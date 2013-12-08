@@ -1,2 +1,2 @@
-target application Test sources(main.cpp) library_dir($external_library.library_dir) link_with(external_library) depends_on(external_library)
+target application Test sources(main.cpp) library_dirs($external_library.library_dir) link_with(external_library) depends_on(external_library)
 
