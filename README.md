@@ -37,7 +37,7 @@ target application Test1 sources(Test.cpp)
 ### Static library example ###
 
 ```
-target static\_library Library sources(lib.cpp)
+target static_library Library sources(lib.cpp)
 target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 ```
 
@@ -45,7 +45,7 @@ target application Test sources(main.cpp) link_with(Library) depends_on(Library)
 ### Variable sharing ###
 
 ```
-# external\_library.pake
+# external_library.pake
 set $library_dir _build/external_library/
 target phony external_library run_before(./do_some_cmake_build_or_something.sh)
 ```
@@ -69,7 +69,7 @@ target static_library [ run_before(SCRIPT) ] [ run_after(SCRIPT) ] [ sources(LIS
 
 Unlike make, where you're responsible to deliver means to build the artefact, pake has several, dedicated target types and uses it's own understanding of toolchain to provide deliverables.
 
-Each target type might call external script, to do that, you can use either `run\_before` or `run\_after` parameter. See the example.
+Each target type might call external script, to do that, you can use either `run_before` or `run_after` parameter. See the example.
 
 ```
 target type phony tests run_before(./run_tests.sh)
@@ -77,7 +77,7 @@ target type phony tests run_before(./run_tests.sh)
 
 When bullding target, pake is changing working directory to the one in which `.pake` file for current target is located.
 
-Targets that involve compiling some source code (like `application`) accepts additional `include\_dirs` parameter in with additional directories might be pointed to the compiler.
+Targets that involve compiling some source code (like `application`) accepts additional `include_dirs` parameter in with additional directories might be pointed to the compiler.
 
 ### Application ###
 The most common target which you can use. It builds complete C++ application from sources or libraries.
@@ -98,7 +98,7 @@ This target does nothing when it comes to pake's compiler support. It can be use
 
 ## Variables ##
 
-Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like `some\_file.cpp`) are not surrounded by quotation marks and pake needs to distinguish one another.
+Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like `some_file.cpp`) are not surrounded by quotation marks and pake needs to distinguish one another.
 
 ## Modules ##
 
@@ -124,7 +124,7 @@ target application sources($sources $A.sources)
 ## Features ##
 
  * C++ header dependency resolver
- * Minimal tree pollution (single `\_build` directory with the results)
+ * Minimal tree pollution (single `_build` directory with the results)
  * Easy project integration - just put `pake.py` inside your tree and write `.pake` files
  * No "include"-mess. Pake walks trough your tree and find .pake files to be used in your project
  * Shared variables. You can easily read variable from other module
