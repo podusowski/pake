@@ -81,6 +81,12 @@ class CxxToolchain:
         else:
             info(BOLD + out_filename + RESET + " is up to date")
 
+    def object_filename(self, target_name, source_filename):
+        return BUILD_DIR + "/build." + target_name + "/" + source_filename + ".o"
+
+    def static_library_filename(self, target_name):
+        return BUILD_DIR + "/lib" + target_name + ".a"
+
     def __scan_includes(self, in_filename):
         debug("scanning includes for " + in_filename)
         ret = []
@@ -99,8 +105,7 @@ class CxxToolchain:
     def __are_libs_newer_than_target(self, link_with, target):
         # just look at BUILD_DIR and check if lib exiss there
         for lib in link_with:
-            # TODO: filenames!
-            if is_newer_than(BUILD_DIR + "/lib" + lib + ".a", target):
+            if is_newer_than(self.static_library_filename(lib), target):
                 return True
         return False
 
@@ -169,7 +174,7 @@ class Application(Target):
         debug("building application from " + str(evaluated_sources))
 
         for source in evaluated_sources:
-            object_file = self.__object_filename(source)
+            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
             self.toolchain.build_object(object_file, source)
 
@@ -181,10 +186,6 @@ class Application(Target):
             object_files,
             evaluated_link_with,
             evaluated_library_dir)
-
-    def __object_filename(self, in_filename):
-        out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
-        return out
 
     def __app_filename(self, target_name):
         return BUILD_DIR + "/" + self.common_parameters.name
@@ -206,15 +207,11 @@ class StaticLibrary(Target):
         debug("building static_library from " + str(evaluated_sources))
 
         for source in evaluated_sources:
-            object_file = self.__object_filename(source)
+            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
             self.toolchain.build_object(object_file, source)
             object_files.append(object_file)
 
         self.toolchain.link_static_library(self.__lib_filename(), object_files)
-
-    def __object_filename(self, in_filename):
-        out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
-        return out
 
     def __lib_filename(self):
         return BUILD_DIR + "/lib" + self.common_parameters.name + ".a"
