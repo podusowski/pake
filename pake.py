@@ -45,14 +45,11 @@ def execute(command):
 
 class CxxToolchain:
     def __init__(self):
-        self.cxx_compiler = CxxCompiler()
-
-class CxxCompiler:
-    def __init__(self):
         self.compiler_cmd = "c++"
         self.compiler_flags = "-I."
+        self.archiver_cmd = "ar"
 
-    def build(self, out_filename, in_filename):
+    def build_object(self, out_filename, in_filename):
         prerequisites = self.__scan_includes(in_filename)
         prerequisites.append(in_filename)
 
@@ -61,19 +58,9 @@ class CxxCompiler:
             execute("mkdir -p " + os.path.dirname(out_filename))
             execute(self.compiler_cmd + " " + self.compiler_flags + " -c -o " + out_filename + " " + in_filename)
 
-    def __scan_includes(self, in_filename):
-        debug("scanning includes for " + in_filename)
-        ret = []
-        out = execute(self.compiler_cmd + " " + self.compiler_flags + " -M " + in_filename).split()
-        for token in out[2:]:
-            if token != "\\":
-                ret.append(token)
-        return ret
-
-class CxxLinker:
-    def build(self, out_filename, in_filenames, link_with, library_dir):
+    def link_application(self, out_filename, in_filenames, link_with, library_dir):
         if is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
-            debug("linker")
+            debug("linking application")
             debug("  files: " + str(in_filenames))
             debug("  with libs: " + str(link_with))
             debug("  lib dir: " + str(library_dir))
@@ -86,6 +73,22 @@ class CxxLinker:
             execute("c++ -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
         else:
             info(BOLD + out_filename + RESET + " is up to date")
+
+    def link_static_library(self, out_filename, in_filenames):
+        if is_any_newer_than(in_filenames, out_filename):
+            info(BOLD + "archiving " + RESET + out_filename)
+            execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
+        else:
+            info(BOLD + out_filename + RESET + " is up to date")
+
+    def __scan_includes(self, in_filename):
+        debug("scanning includes for " + in_filename)
+        ret = []
+        out = execute(self.compiler_cmd + " " + self.compiler_flags + " -M " + in_filename).split()
+        for token in out[2:]:
+            if token != "\\":
+                ret.append(token)
+        return ret
 
     def __libs_arguments(self, link_with):
         ret = "-L " + BUILD_DIR + " "
@@ -100,14 +103,6 @@ class CxxLinker:
             if is_newer_than(BUILD_DIR + "/lib" + lib + ".a", target):
                 return True
         return False
-
-class CxxArchiver:
-    def build(self, out_filename, in_filenames):
-        if is_any_newer_than(in_filenames, out_filename):
-            info(BOLD + "archiving " + RESET + out_filename)
-            execute("ar -rcs " + out_filename + " " + " ".join(in_filenames))
-        else:
-            info(BOLD + out_filename + RESET + " is up to date")
 
 """
     targets
@@ -163,8 +158,7 @@ class Application(Target):
         self.common_cxx_parameters = common_cxx_parameters
         self.link_with = link_with
         self.library_dir = library_dir
-        self.compiler = CxxCompiler()
-        self.linker = CxxLinker()
+        self.toolchain = CxxToolchain()
 
     def build(self):
         object_files = []
@@ -177,12 +171,12 @@ class Application(Target):
         for source in evaluated_sources:
             object_file = self.__object_filename(source)
             object_files.append(object_file)
-            self.compiler.build(object_file, source)
+            self.toolchain.build_object(object_file, source)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dir = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dir)
 
-        self.linker.build(
+        self.toolchain.link_application(
             self.__app_filename(self.common_parameters.name),
             object_files,
             evaluated_link_with,
@@ -201,8 +195,7 @@ class StaticLibrary(Target):
 
         self.common_parameters = common_parameters
         self.common_cxx_parameters = common_cxx_parameters
-        self.compiler = CxxCompiler()
-        self.linker = CxxArchiver()
+        self.toolchain = CxxToolchain()
 
     def build(self):
         object_files = []
@@ -214,10 +207,10 @@ class StaticLibrary(Target):
 
         for source in evaluated_sources:
             object_file = self.__object_filename(source)
-            self.compiler.build(object_file, source)
+            self.toolchain.build_object(object_file, source)
             object_files.append(object_file)
 
-        self.linker.build(self.__lib_filename(), object_files)
+        self.toolchain.link_static_library(self.__lib_filename(), object_files)
 
     def __object_filename(self, in_filename):
         out = BUILD_DIR + "/build." + self.common_parameters.name + "/" + in_filename + ".o"
