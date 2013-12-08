@@ -78,7 +78,7 @@ The most common target which you can use. It builds complete C++ application fro
 #### Example
 
 ```
-target application sources(main.cpp utils.cpp)
+target application HelloWorld sources(main.cpp utils.cpp)
 ```
 
 ### Static library
