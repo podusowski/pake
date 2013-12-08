@@ -72,6 +72,8 @@ Each target type might call external script, to do that, you can use either `run
 target type phony tests run_before(./run_tests.sh)
 ```
 
+When bullding target, pake is changing working directory to the one in which `.pake` file for current target is located.
+
 ### Application
 The most common target which you can use. It builds complete C++ application from sources or libraries.
 
