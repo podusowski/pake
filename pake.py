@@ -122,10 +122,13 @@ class CxxToolchain:
         return ret
 
     def __are_libs_newer_than_target(self, link_with, target):
-        # just look at BUILD_DIR and check if lib exiss there
+        # check if the library is from our source tree
         for lib in link_with:
-            if is_newer_than(self.static_library_filename(lib), target):
-                return True
+            filename = self.static_library_filename(lib)
+            if os.path.exists(filename):
+                # TODO: proper appname
+                if is_newer_than(filename, target):
+                    return True
         return False
 
 """
