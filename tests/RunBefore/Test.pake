@@ -1,7 +1,6 @@
-append $sources _build/generated.cpp
+append $sources "_build/generated.cpp"
 append $sources Test2.cpp
 
-set $cflags -pedantic
-
 target application Test sources(Test1.cpp $sources) run_before(./generate.sh)
+target phony Test2 run_before("touch _build/Test2")
 

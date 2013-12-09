@@ -19,4 +19,7 @@ rm -rf _build
     touch _build/generated_1.hpp
     assert $pake Test
 
+    assert $pake Test2
+    assert test -f _build/Test2
+
 rm -rf _build
