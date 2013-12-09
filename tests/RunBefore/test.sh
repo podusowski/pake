@@ -22,4 +22,7 @@ rm -rf _build
     assert $pake Test2
     assert test -f _build/Test2
 
+    assert $pake Test3
+    assert test -f _build/Test3
+
 rm -rf _build

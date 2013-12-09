@@ -146,8 +146,8 @@ class CommonTargetParameters:
         self.module_name = module_name
         self.name = name
         self.depends_on = []
-        self.run_before = None
-        self.run_after = None
+        self.run_before = []
+        self.run_after = []
 
 class CommonCxxParameters:
     def __init__(self):
@@ -174,8 +174,12 @@ class Target:
         self.__try_run(self.common_parameters.run_after)
         os.chdir(root_dir)
 
-    def __try_run(self, cmd):
-        if cmd != None:
+    def __try_run(self, cmds):
+        evaluated_cmds = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            cmds)
+
+        for cmd in evaluated_cmds:
             debug("running " + str(cmd))
             execute(cmd)
 
@@ -465,10 +469,10 @@ class Module:
             common_parameters.depends_on = self.__parse_list(it)
             return True
         elif token[1] == "run_before":
-            common_parameters.run_before = self.__parse_argument(it)
+            common_parameters.run_before = self.__parse_list(it)
             return True
         elif token[1] == "run_after":
-            common_parameters.run_after = self.__parse_argument(it)
+            common_parameters.run_after = self.__parse_list(it)
             return True
 
         return False
