@@ -298,7 +298,9 @@ class VariableDeposit:
         ret = []
         for token in l:
             if token[0] == Tokenizer.TOKEN_LITERAL:
-                ret.append(token[1])
+                content = self.__eval_literal(current_module, token[1])
+                debug("  " + token[1] + " = " + content)
+                ret.append(content)
             elif token[0] == Tokenizer.TOKEN_VARIABLE:
                 parts = token[1].split(".")
 
@@ -318,14 +320,15 @@ class VariableDeposit:
                         re = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, value)])
                         for value in re: ret.append(value)
                     else:
-                        ret.append(value)
+                        content = self.__eval_literal(current_module, value)
+                        ret.append(content)
             else:
                 raise ParsingError("")
 
         debug("  " + str(ret))
         return ret
 
-    def __eval_literal(self, s):
+    def __eval_literal(self, current_module, s):
         debug("evaluating literal: " + s)
         ret = ""
 
@@ -333,7 +336,7 @@ class VariableDeposit:
         STATE_WAITING_FOR_PARENTHESIS = 2
         STATE_READING_NAME = 3
 
-        variable_name = ''
+        variable_name = '$'
         state = STATE_READING
 
         for c in s:
@@ -341,16 +344,26 @@ class VariableDeposit:
                 if c == "$":
                     state = STATE_WAITING_FOR_PARENTHESIS
                 else:
-                    s = s + c
+                    ret += c
             elif state == STATE_WAITING_FOR_PARENTHESIS:
                 if c == "{":
                     state = STATE_READING_NAME
                 else:
                     raise ParsingError("expecting { after $")
             elif state == STATE_READING_NAME:
+                if c == "}":
+                    debug("variable: " + variable_name)
+                    evaluated_variable = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, variable_name)])
+                    for value in evaluated_variable:
+                        ret += value + " "
+                    variable_name = '$'
+                    state = STATE_READING
+                else:
+                    variable_name += c
+            elif state == STATE_READING_NAME:
                 variable_name = variable_name + c
 
-        return s
+        return ret
 
     def add(self, module_name, name, value):
         debug("adding variable in module " + module_name + " called " + name + " with value of " + value)
