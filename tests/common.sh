@@ -1,6 +1,10 @@
 pake_dir=`dirname $BASH_SOURCE`/..
 pake=`readlink -f $pake_dir`/pake.py
 
+reset="\033[0m"
+bg1="\033[44;37m"
+bg2="\033[40;37m"
+
 function error()
 {
     echo "----------------------------------------------------------------------"
@@ -11,24 +15,20 @@ function error()
 
 function assert()
 {
-    echo running: $@
+    echo -e "${bg1}Test:${reset} running $@"
     $@ || error $@
 }
 
 function assert_fail()
 {
-    echo running: $@
+    echo -e "${bg1}Test:${reset} running $@"
     $@ && error $@
 }
 
 function big_echo()
 {
-    echo
-    echo "----------------------------------------------------------------------"
-    echo $@
-    echo "----------------------------------------------------------------------"
-    echo
+    echo -e "${bg1}Test:${reset} $@"
 }
 
-export DEBUG=1
+#export DEBUG=1
 

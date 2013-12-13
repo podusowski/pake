@@ -2,5 +2,5 @@
 
 int main()
 {
-    std::cout << "hello from complex app!";
+    std::cout << "hello from complex app!\n";
 }
