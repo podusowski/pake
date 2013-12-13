@@ -33,8 +33,7 @@ def execute(command):
     out = f.read()
     ret = f.close()
     if ret != None:
-        debug("error in command: " + command)
-        raise Exception("error in command: " + command)
+        Ui.fatal("command did not finish successfully: " + command)
 
     Ui.debug("command completed: " + command)
     return out
@@ -54,7 +53,7 @@ class Ui:
 
     @staticmethod
     def fatal(message):
-        print(message)
+        print(BOLD_RED + "fatal: " + RESET + message)
         sys.exit(1)
 
     @staticmethod
@@ -432,6 +431,13 @@ class Module:
             "$__path",
             os.getcwd() + "/" + os.path.dirname(self.filename))
 
+    def __parse_error(self, token = None, msg = None):
+        if token != None:
+            (t, c) = token
+            Ui.fatal("syntax error in " + self.filename + ": unexpected token: " + c)
+        else:
+            Ui.fatal(msg)
+
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
         (root, ext) = os.path.splitext(base)
@@ -545,11 +551,11 @@ class Module:
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
                 elif token[1] == "library_dirs": library_dirs = self.__parse_list(it)
-                else: raise ParsingError(token)
+                else: self.__parse_error(token)
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break
             else:
-                raise ParsingError(token)
+                self.__parse_error(token)
 
         target = Application(common_parameters, common_cxx_parameters, link_with, library_dirs)
         self.__add_target(target)
@@ -605,7 +611,6 @@ class Module:
 
     def __parse_target(self, it):
         token = it.next()
-        EXPECTED_TARGET_NAME_MSG = "expected target name"
         if token[0] == Tokenizer.TOKEN_LITERAL:
             target_type = token[1]
 
@@ -613,14 +618,14 @@ class Module:
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 target_name = token[1]
             else:
-                raise ParsingError(token, EXPECTED_TARGET_NAME_MSG)
+                self.__parse_error(token)
         else:
-            raise ParsingError(token, EXPECTED_TARGET_NAME_MSG)
+            self.__parse_error(token)
 
         if target_type == "application":       self.__parse_application_target(target_name, it)
         elif target_type == "static_library":  self.__parse_static_library(target_name, it)
         elif target_type == "phony":           self.__parse_phony(target_name, it)
-        else: raise ParsingError(token, "unknown target type: " + target_type)
+        else: self.__parse_error(msg="unknown target type: " + target_type)
 
     def __parse_directive(self, it):
         while True:
@@ -629,7 +634,7 @@ class Module:
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "set" or token[1] == "append": self.__parse_set_or_append(it, token[1] == "append")
                 elif token[1] == "target":                    self.__parse_target(it)
-                else: raise ParsingError(token, error_msg)
+                else: self.__parse_error(msg="expected directive")
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 continue
