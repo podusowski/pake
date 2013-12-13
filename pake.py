@@ -10,6 +10,7 @@ BOLD = '\033[1m'
 GRAY = '\033[90m'
 RED = '\033[31m'
 BOLD_RED = '\033[1;31m'
+BOLD_BLUE = "\033[34;1m"
 BUILD_DIR = os.getcwd() + "/_build"
 
 """
@@ -45,11 +46,11 @@ class Ui:
 
     @staticmethod
     def step(tool, parameter):
-        print(tool + parameter)
+        print(BOLD + tool + RESET + " " + parameter)
 
     @staticmethod
     def bigstep(tool, parameter):
-        print(tool + parameter)
+        print(BOLD_BLUE + tool + RESET + " " + parameter)
 
     @staticmethod
     def fatal(message):
@@ -95,14 +96,14 @@ class CxxToolchain:
             Ui.bigstep("linking", out_filename)
             execute(self.compiler_cmd + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
         else:
-            Ui.bigstep(out_filename, "is up to date")
+            Ui.bigstep("up to date", out_filename)
 
     def link_static_library(self, out_filename, in_filenames):
         if is_any_newer_than(in_filenames, out_filename):
-            Ui.step("archiving", out_filename)
+            Ui.bigstep("archiving", out_filename)
             execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
         else:
-            Ui.bigstep(out_filename, "is up to date")
+            Ui.bigstep("up to date", out_filename)
 
     def object_filename(self, target_name, source_filename):
         return BUILD_DIR + "/build." + target_name + "/" + source_filename + ".o"
@@ -336,6 +337,9 @@ class VariableDeposit:
                 elif len(parts) == 2:
                     module = parts[0][1:] # lose the $
                     name = "$" + parts[1]
+
+                if not name in self.modules[module]:
+                    Ui.fatal("tried to dereference non-existing variable: " + name)
 
                 for value in self.modules[module][name]:
                     if value[0] == "$":
