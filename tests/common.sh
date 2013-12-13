@@ -1,4 +1,5 @@
-pake=`dirname $BASH_SOURCE`/../pake.py
+pake_dir=`dirname $BASH_SOURCE`/..
+pake=`readlink -f $pake_dir`/pake.py
 
 function error()
 {
