@@ -381,8 +381,7 @@ class VariableDeposit:
                 if c == "}":
                     Ui.debug("variable: " + variable_name)
                     evaluated_variable = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, variable_name)])
-                    for value in evaluated_variable:
-                        ret += value + " "
+                    ret += " ".join(evaluated_variable)
                     variable_name = '$'
                     state = STATE_READING
                 else:
