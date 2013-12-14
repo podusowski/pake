@@ -322,7 +322,7 @@ class VariableDeposit:
         Ui.debug("poluting environment")
         for module in self.modules:
             for (name, variable) in self.modules[module].iteritems():
-                evaluated = self.eval(current_module, variable)
+                evaluated = self.eval(module, variable)
                 env_name = module + "_" + name[1:]
                 os.environ[env_name] = " ".join(evaluated)
                 Ui.debug("  " + env_name + ": " + str(evaluated))
@@ -332,7 +332,7 @@ class VariableDeposit:
                     Ui.debug("  " + env_short_name + ": " + str(evaluated))
 
     def eval(self, current_module, l):
-        Ui.debug("evaluating " + str(l))
+        Ui.debug("evaluating " + str(l) + " in context of module " + current_module)
         ret = []
         for token in l:
             if token[0] == Tokenizer.TOKEN_LITERAL:
@@ -354,14 +354,14 @@ class VariableDeposit:
                     name = "$" + parts[1]
 
                 if not name in self.modules[module]:
-                    Ui.fatal("tried to dereference non-existing variable: " + name)
+                    Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + current_module)
 
                 for value in self.modules[module][name]:
                     if value[0] == Tokenizer.TOKEN_VARIABLE:
-                        re = self.eval(current_module, [value])
+                        re = self.eval(module, [value])
                         for v in re: ret.append(v)
                     else:
-                        content = self.__eval_literal(current_module, value[1])
+                        content = self.__eval_literal(module, value[1])
                         ret.append(content)
                         Ui.debug("    = " + str(content))
             else:

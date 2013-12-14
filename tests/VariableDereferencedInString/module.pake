@@ -1,1 +1,2 @@
-set $command touch
+set $c touch
+set $command "${c}"
