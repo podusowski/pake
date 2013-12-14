@@ -111,6 +111,22 @@ append $generated src/generated.cpp
 append $sources $generated
 ```
 
+When command is executed by `run_before` or `run_after` parameters, the environment is poluted by all variables declared in pake files. Variables defined in the module from which command was executer has short name, for inter-module variables, `_` character is used as reference to the module.
+
+```
+# hello.pake
+set hello "pake"
+target phony hello run_before(./hello.sh)
+```
+```
+# world.pake
+set world "rocks"
+```
+```
+# hello.sh
+echo "$hello $world_world"
+```
+
 ## Modules ##
 
 Pake tree consists of so called modules, those are simply `.pake` files somewhere in your project sources. You don't have to include anything, the idea is that pake walks through all directories looking for the modules. There is no limitation on how many targets are inside the module. Each variable has it's module origin, so although you can create as many variables you want, their names can't duplicate across one module (they can however in many different modules).
@@ -134,8 +150,10 @@ target application sources($sources $A.sources)
 ## Special variables ##
 
 ### __path ###
-
 This variable is created for each module and it contains directory where this module was found.
+
+### __build ###
+Build directory used by pake.
 
 ## Features ##
 

@@ -450,6 +450,11 @@ class Module:
             "$__path",
             (Tokenizer.TOKEN_LITERAL, os.getcwd() + "/" + os.path.dirname(self.filename)))
 
+        self.variable_deposit.add(
+            self.name,
+            "$__build",
+            (Tokenizer.TOKEN_LITERAL, BUILD_DIR))
+
     def __parse_error(self, token = None, msg = None):
         if token != None:
             (t, c) = token

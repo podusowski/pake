@@ -1,4 +1,4 @@
-set $build_directory _build
+set $build_directory $__build
 
 append $sources "_build/generated.cpp"
 append $sources Test2.cpp
