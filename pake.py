@@ -193,6 +193,8 @@ class Target:
         self.__try_run(self.common_parameters.run_after)
 
     def __try_run(self, cmds):
+        self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
+
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
@@ -315,6 +317,19 @@ class ParsingError(Exception):
 class VariableDeposit:
     def __init__(self):
         self.modules = {}
+
+    def polute_environment(self, current_module):
+        Ui.debug("poluting environment")
+        for module in self.modules:
+            for (name, variable) in self.modules[module].iteritems():
+                evaluated = self.eval(current_module, variable)
+                env_name = module + "_" + name[1:]
+                os.environ[env_name] = " ".join(evaluated)
+                Ui.debug("  " + env_name + ": " + str(evaluated))
+                if module == current_module:
+                    env_short_name = name[1:]
+                    os.environ[env_short_name] = " ".join(evaluated)
+                    Ui.debug("  " + env_short_name + ": " + str(evaluated))
 
     def eval(self, current_module, l):
         Ui.debug("evaluating " + str(l))
