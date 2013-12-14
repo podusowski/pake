@@ -1,13 +1,18 @@
+. tests/common.sh
+
 for i in tests/*; do
     if [ -d $i ]; then
-        pushd $i
+
+        echo -e "${bg1}  running test $i  ${reset}"
+
+        pushd $i > /dev/null
         if ./test.sh ; then
-            echo pass
+            echo -e "${bg1}  test passed  ${reset}"
         else
-            echo fail
+            echo -e "${bg1}  test failed  ${reset}"
             exit 1
         fi
-        popd
+        popd > /dev/null
         echo
         echo
     fi

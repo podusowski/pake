@@ -101,6 +101,16 @@ This target does nothing when it comes to pake's compiler support. It can be use
 
 Obviously variables are things where you can store stuff, for example list of files to compile. Variables can be manipulated by `set` and `append` directives. Name of the variable must always start with `$`, the reason for that is that in pake, simple literals (like `some_file.cpp`) are not surrounded by quotation marks and pake needs to distinguish one another.
 
+Variables are dereferenced by the end of the tree parsing.
+
+```
+append $sources "src/main.cpp"
+append $sources src/utils.cpp
+
+append $generated src/generated.cpp
+append $sources $generated
+```
+
 ## Modules ##
 
 Pake tree consists of so called modules, those are simply `.pake` files somewhere in your project sources. You don't have to include anything, the idea is that pake walks through all directories looking for the modules. There is no limitation on how many targets are inside the module. Each variable has it's module origin, so although you can create as many variables you want, their names can't duplicate across one module (they can however in many different modules).

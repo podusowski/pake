@@ -1,0 +1,2 @@
+append $source $non_existing
+target application hello sources($sources)

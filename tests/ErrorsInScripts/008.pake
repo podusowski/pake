@@ -1,0 +1,2 @@
+append $variable main.cpp
+target application hello sources("$variable")
