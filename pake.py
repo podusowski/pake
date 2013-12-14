@@ -342,12 +342,13 @@ class VariableDeposit:
                     Ui.fatal("tried to dereference non-existing variable: " + name)
 
                 for value in self.modules[module][name]:
-                    if value[0] == "$":
-                        re = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, value)])
-                        for value in re: ret.append(value)
+                    if value[0] == Tokenizer.TOKEN_VARIABLE:
+                        re = self.eval(current_module, [value])
+                        for v in re: ret.append(v)
                     else:
-                        content = self.__eval_literal(current_module, value)
+                        content = self.__eval_literal(current_module, value[1])
                         ret.append(content)
+                        Ui.debug("    = " + str(content))
             else:
                 raise ParsingError("")
 
@@ -392,7 +393,7 @@ class VariableDeposit:
         return ret
 
     def add(self, module_name, name, value):
-        Ui.debug("adding variable in module " + module_name + " called " + name + " with value of " + value)
+        Ui.debug("adding variable in module " + module_name + " called " + name + " with value of " + str(value))
 
         if not module_name in self.modules:
             self.modules[module_name] = {}
@@ -400,7 +401,7 @@ class VariableDeposit:
         self.modules[module_name][name] = [value]
 
     def append(self, module_name, name, value):
-        Ui.debug("appending variable in module " + module_name + " called " + name + " with value of " + value)
+        Ui.debug("appending variable in module " + module_name + " called " + name + " with value of " + str(value))
 
         if not module_name in self.modules:
             self.modules[module_name] = {}
@@ -433,7 +434,7 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            os.getcwd() + "/" + os.path.dirname(self.filename))
+            (Tokenizer.TOKEN_LITERAL, os.getcwd() + "/" + os.path.dirname(self.filename)))
 
     def __parse_error(self, token = None, msg = None):
         if token != None:
@@ -462,9 +463,9 @@ class Module:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL or token[0] == Tokenizer.TOKEN_VARIABLE:
                 if append:
-                    self.variable_deposit.append(self.name, variable_name, token[1])
+                    self.variable_deposit.append(self.name, variable_name, token)
                 else:
-                    self.variable_deposit.add(self.name, variable_name, token[1])
+                    self.variable_deposit.add(self.name, variable_name, token)
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break

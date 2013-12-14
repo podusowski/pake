@@ -1,4 +1,4 @@
 append $output_file "_build/hello"
-append $command "touch ${output_file}"
+append $command "${module.command} ${output_file}"
 target phony hello run_before($command)
 
