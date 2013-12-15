@@ -103,11 +103,7 @@ class CxxToolchain:
             Ui.bigstep("up to date", out_filename)
 
     def link_static_library(self, out_filename, in_filenames):
-        if is_any_newer_than(in_filenames, out_filename):
-            Ui.bigstep("archiving", out_filename)
-            execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
-        else:
-            Ui.bigstep("up to date", out_filename)
+        execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
 
     def object_filename(self, target_name, source_filename):
         return BUILD_DIR + "/build." + target_name + "/" + source_filename + ".o"
@@ -164,7 +160,7 @@ class CxxToolchain:
 """
 
 class CommonTargetParameters:
-    def __init__(self, variable_deposit, root_path, module_name, name):
+    def __init__(self, variable_deposit, root_path, module_name, name, toolchain):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(module_name, str)
         assert isinstance(name, str)
@@ -173,6 +169,9 @@ class CommonTargetParameters:
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
+        self.toolchain = toolchain
+        self.artefacts = []
+        self.prerequisites = []
         self.depends_on = []
         self.run_before = []
         self.run_after = []
@@ -197,23 +196,41 @@ class Target:
         self.__try_run(self.common_parameters.run_after)
 
     def __try_run(self, cmds):
-        self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
-
-        root_dir = os.getcwd()
-        os.chdir(self.common_parameters.root_path)
-
-        evaluated_cmds = self.common_parameters.variable_deposit.eval(
+        evaluated_artefacts = self.common_parameters.variable_deposit.eval(
             self.common_parameters.module_name,
-            cmds)
+            self.common_parameters.artefacts)
 
-        for cmd in evaluated_cmds:
-            Ui.debug("running " + str(cmd))
-            execute(cmd)
+        evaluated_prerequisites = self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            self.common_parameters.prerequisites)
 
-        os.chdir(root_dir)
+        should_run = True
+        if len(evaluated_prerequisites) > 0 and len(evaluated_artefacts) > 0:
+            should_run = False
+            Ui.debug("checking prerequisites (" + str(evaluated_prerequisites) + ") for making " + str(evaluated_artefacts))
+            for artefact in evaluated_artefacts:
+                if is_any_newer_than(evaluated_prerequisites, artefact):
+                    should_run = True
+                    break
+
+        if should_run:
+            self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
+
+            root_dir = os.getcwd()
+            os.chdir(self.common_parameters.root_path)
+
+            evaluated_cmds = self.common_parameters.variable_deposit.eval(
+                self.common_parameters.module_name,
+                cmds)
+
+            for cmd in evaluated_cmds:
+                Ui.debug("running " + str(cmd))
+                execute(cmd)
+
+            os.chdir(root_dir)
 
 class Phony(Target):
-    def __init__(self, common_parameters, artefact):
+    def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
 
     def build(self):
@@ -296,9 +313,13 @@ class StaticLibrary(Target):
             self.toolchain.build_object(object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
             object_files.append(object_file)
 
-        self.toolchain.link_static_library(
-            self.toolchain.static_library_filename(self.common_parameters.name),
-            object_files)
+        artefact = self.toolchain.static_library_filename(self.common_parameters.name)
+
+        if is_any_newer_than(object_files, artefact):
+            Ui.bigstep("archiving", artefact)
+            self.toolchain.link_static_library(artefact, object_files)
+        else:
+            Ui.bigstep("up to date", artefact)
 
         os.chdir(root_dir)
 
@@ -564,11 +585,14 @@ class Module:
         link_with = []
         library_dirs = []
 
+        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name)
+            target_name,
+            toolchain)
+        common_parameters.artefact = toolchain.application_filename(target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -589,11 +613,14 @@ class Module:
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
+        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name)
+            target_name,
+            toolchain)
+        common_parameters.artefact = toolchain.static_library_filename(target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -612,13 +639,14 @@ class Module:
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
-        artefact = None
+        toolchain = CxxToolchain()
 
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name)
+            target_name,
+            toolchain)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -626,7 +654,8 @@ class Module:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif token[1] == "artefact": artefact = self.__parse_argument(it)
+                elif token[1] == "artefacts": common_parameters.artefacts = self.__parse_list(it)
+                elif token[1] == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
                 else: raise ParsingError(token)
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
@@ -634,7 +663,7 @@ class Module:
             else:
                 raise ParsingError(token)
 
-        target = Phony(common_parameters, artefact)
+        target = Phony(common_parameters)
         self.__add_target(target)
 
     def __parse_target(self, it):

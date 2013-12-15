@@ -14,6 +14,14 @@ rm -rf _build
     assert $pake Test2
     assert test -f _build/Test2
 
+    # it's artefact is Test2 so it shouldnt be rebuilt
+    assert $pake Test4
+    assert_fail test -f _build/Test4
+    touch Test.pake
+    assert $pake Test4
+    assert test -f _build/Test4
+
+
     assert $pake Test3
     assert test -f _build/Test3
 
