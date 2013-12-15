@@ -20,8 +20,11 @@ BUILD_DIR = os.getcwd() + "/_build"
 
 def is_newer_than(prerequisite, target):
     if os.path.exists(target):
-        return os.path.getmtime(prerequisite) > os.path.getmtime(target)
+        ret = os.path.getmtime(prerequisite) > os.path.getmtime(target)
+        Ui.debug("is " + prerequisite + " newer than " + target + " = " + str(ret))
+        return ret
     else:
+        Ui.debug(target + " doesn't exist, treating like older")
         return True
 
 def is_any_newer_than(prerequisites, target):
@@ -196,6 +199,9 @@ class Target:
         self.__try_run(self.common_parameters.run_after)
 
     def __try_run(self, cmds):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
         evaluated_artefacts = self.common_parameters.variable_deposit.eval(
             self.common_parameters.module_name,
             self.common_parameters.artefacts)
@@ -209,15 +215,15 @@ class Target:
             should_run = False
             Ui.debug("checking prerequisites (" + str(evaluated_prerequisites) + ") for making " + str(evaluated_artefacts))
             for artefact in evaluated_artefacts:
+                Ui.debug("  " + artefact)
                 if is_any_newer_than(evaluated_prerequisites, artefact):
+                    Ui.debug("going on because " + str(artefact) + " need to be rebuilt")
                     should_run = True
                     break
 
         if should_run:
             self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
 
-            root_dir = os.getcwd()
-            os.chdir(self.common_parameters.root_path)
 
             evaluated_cmds = self.common_parameters.variable_deposit.eval(
                 self.common_parameters.module_name,
@@ -227,7 +233,7 @@ class Target:
                 Ui.debug("running " + str(cmd))
                 execute(cmd)
 
-            os.chdir(root_dir)
+        os.chdir(root_dir)
 
 class Phony(Target):
     def __init__(self, common_parameters):
