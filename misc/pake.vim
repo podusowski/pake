@@ -4,7 +4,7 @@ endif
 
 syn keyword pakeDirective       target set append
 syn keyword pakeTargetType      application static_library phony
-syn keyword pakeArgument        sources link_with depends_on run_before run_after library_dirs include_dirs compiler_flags
+syn keyword pakeArgument        sources link_with depends_on run_before run_after library_dirs include_dirs compiler_flags artefacts prerequisites
 syn match pakeSpecialVariable   "__path"
 syn match pakeSpecialVariable   "__build"
 syn match pakeComment           "#.*$"
