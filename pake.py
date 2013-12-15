@@ -124,6 +124,9 @@ class CxxToolchain:
         for token in out[2:]:
             if token != "\\":
                 ret.append(token)
+
+        # in standard c++ code, standard and library includes will be first
+        ret.reverse()
         return ret
 
     def __libs_arguments(self, link_with):
