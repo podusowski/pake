@@ -1,7 +1,6 @@
 set $build_directory $__build
 
-append $sources "_build/generated.cpp"
-append $sources Test2.cpp
+append $sources "_build/generated.cpp" Test2.cpp
 
 target application Test sources(Test1.cpp $sources) run_before(./generate.sh)
 target phony Test2 artefacts("${__build}/Test2") run_before("touch _build/Test2")

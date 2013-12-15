@@ -509,13 +509,15 @@ class Module:
         else:
             raise ParsingError(token)
 
+        second_add = False
         while True:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL or token[0] == Tokenizer.TOKEN_VARIABLE:
-                if append:
+                if append or second_add:
                     self.variable_deposit.append(self.name, variable_name, token)
                 else:
                     self.variable_deposit.add(self.name, variable_name, token)
+                    second_add = True
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:
                 break

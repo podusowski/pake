@@ -1,0 +1,4 @@
+set $files1 test1 "test2"
+append $files1 test3
+append $files2 test10
+target phony hello run_before("cd ${__build}; touch ${files1} ${files2}; cd ..")
