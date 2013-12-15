@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import stat
+import subprocess
 
 RESET = '\033[0m'
 BOLD = '\033[1m'
@@ -29,11 +30,14 @@ def is_any_newer_than(prerequisites, target):
             return True
     return False
 
-def execute(command):
-    f = os.popen(command)
-    out = f.read()
-    ret = f.close()
-    if ret != None:
+def execute(command, capture_output = False):
+    out = ''
+    try:
+        if capture_output:
+            out = subprocess.check_output(command, shell=True)
+        else:
+            subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError:
         Ui.fatal("command did not finish successfully: " + command)
 
     Ui.debug("command completed: " + command)
@@ -117,7 +121,7 @@ class CxxToolchain:
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         Ui.debug("scanning includes for " + in_filename)
         ret = []
-        out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename).split()
+        out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
         for token in out[2:]:
             if token != "\\":
                 ret.append(token)
