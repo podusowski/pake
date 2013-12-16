@@ -5,6 +5,7 @@ import sys
 import tempfile
 import stat
 import subprocess
+import argparse
 
 RESET = '\033[0m'
 BOLD = '\033[1m'
@@ -47,6 +48,13 @@ def execute(command, capture_output = False):
     return out
 
 class Ui:
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    GRAY = '\033[90m'
+    RED = '\033[31m'
+    BOLD_RED = '\033[1;31m'
+    BOLD_BLUE = "\033[34;1m"
+
     @staticmethod
     def info(message):
         print(message)
@@ -939,6 +947,11 @@ class SourceTree:
         if not found:
             Ui.fatal("target " + BOLD + target + RESET + " not found in the source tree")
 
+    def build_all(self):
+        for f in self.files:
+            for t in t.targets:
+                self.build(t.common_parameters.name)
+
     def __find_pake_files(self, path = "."):
         for (dirpath, dirnames, filenames) in os.walk(path):
             for f in filenames:
@@ -951,14 +964,29 @@ def info(s):
     print(s)
 
 def main():
+    parser = argparse.ArgumentParser(description='Painless buildsystem.')
+    parser.add_argument('target', metavar='target', nargs="*", help='target to be built')
+    parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
+
     tree = SourceTree()
 
-    if len(sys.argv) > 1:
-        target_name = sys.argv[1]
-        tree.build(target_name)
+    targets = []
+    for module in tree.files:
+        for t in module.targets:
+            targets.append(t.common_parameters.name)
+
+    args = parser.parse_args()
+
+    if len(args.target) > 0:
+        for target in args.target:
+            tree.build(target)
+    elif args.all:
+        Ui.bigstep("building all targets", " ".join(targets))
+        for target in targets:
+            tree.build(target)
     else:
-        for module in tree.files:
-            for t in module.targets:
-                print(t)
+        Ui.info(Ui.BOLD + "targets found in this source tree:" + Ui.RESET)
+        for target in targets:
+            Ui.info(target)
 
 main()
