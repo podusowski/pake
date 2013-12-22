@@ -6,6 +6,7 @@ import tempfile
 import stat
 import subprocess
 import argparse
+import marshal
 
 BUILD_DIR = os.getcwd() + "/_build"
 
@@ -82,8 +83,8 @@ class CxxToolchain:
         self.compiler_flags = "-I."
         self.archiver_cmd = "ar"
 
-    def build_object(self, out_filename, in_filename, include_dirs, compiler_flags):
-        prerequisites = self.__scan_includes(in_filename, include_dirs, compiler_flags)
+    def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
+        prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
         prerequisites.append(in_filename)
 
         if is_any_newer_than(prerequisites, out_filename):
@@ -118,6 +119,20 @@ class CxxToolchain:
 
     def application_filename(self, target_name):
         return BUILD_DIR + "/" + target_name
+
+    def cache_directory(self, target_name):
+        return BUILD_DIR + "/build." + target_name + "/"
+
+    def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
+        cache_file = self.cache_directory(target_name) + in_filename + ".includes"
+        includes = None
+        if os.path.exists(cache_file) and is_newer_than(cache_file, in_filename):
+            includes = marshal.load(open(cache_file))
+        else:
+            execute("mkdir -p " + os.path.dirname(cache_file))
+            includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
+            marshal.dump(includes, open(cache_file, "w"))
+        return includes
 
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         Ui.debug("scanning includes for " + in_filename)
@@ -279,7 +294,7 @@ class Application(Target):
         for source in evaluated_sources:
             object_file = self.toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
-            self.toolchain.build_object(object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dirs = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dirs)
@@ -321,7 +336,7 @@ class StaticLibrary(Target):
 
         for source in evaluated_sources:
             object_file = self.toolchain.object_filename(self.common_parameters.name, source)
-            self.toolchain.build_object(object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
             object_files.append(object_file)
 
         artefact = self.toolchain.static_library_filename(self.common_parameters.name)
@@ -921,10 +936,17 @@ class SourceTree:
     def __init__(self):
         self.variable_deposit = VariableDeposit()
         self.files = []
+        self.built_targets = []
         for filename in self.__find_pake_files():
             self.files.append(Module(self.variable_deposit, filename))
 
     def build(self, target):
+        if target in self.built_targets:
+            Ui.debug(target + " already build, skipping")
+            return
+
+        self.built_targets.append(target)
+
         Ui.debug("building " + target)
         found = False
         for f in self.files:
@@ -939,7 +961,7 @@ class SourceTree:
                     t.build()
                     t.after()
         if not found:
-            Ui.fatal("target " + BOLD + target + RESET + " not found in the source tree")
+            Ui.fatal("target " + Ui.BOLD + target + Ui.RESET + " not found in the source tree")
 
     def build_all(self):
         for f in self.files:
