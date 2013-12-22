@@ -14,20 +14,27 @@ BUILD_DIR = os.getcwd() + "/_build"
     utilities
 """
 
-def is_newer_than(prerequisite, target):
-    if os.path.exists(target):
-        ret = os.path.getmtime(prerequisite) > os.path.getmtime(target)
-        Ui.debug("is " + prerequisite + " newer than " + target + " = " + str(ret))
-        return ret
-    else:
-        Ui.debug(target + " doesn't exist, treating like older")
-        return True
-
-def is_any_newer_than(prerequisites, target):
-    for prerequisite in prerequisites:
-        if is_newer_than(prerequisite, target):
+class FsUtils:
+    @staticmethod
+    def is_newer_than(prerequisite, target):
+        if os.path.exists(target):
+            ret = FsUtils.get_mtime(prerequisite) > FsUtils.get_mtime(target)
+            Ui.debug("is " + prerequisite + " newer than " + target + " = " + str(ret))
+            return ret
+        else:
+            Ui.debug(target + " doesn't exist, treating like older")
             return True
-    return False
+
+    @staticmethod
+    def is_any_newer_than(prerequisites, target):
+        for prerequisite in prerequisites:
+            if FsUtils.is_newer_than(prerequisite, target):
+                return True
+        return False
+
+    @staticmethod
+    def get_mtime(filename):
+        return os.path.getmtime(filename)
 
 def execute(command, capture_output = False):
     out = ''
@@ -87,13 +94,13 @@ class CxxToolchain:
         prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
         prerequisites.append(in_filename)
 
-        if is_any_newer_than(prerequisites, out_filename):
+        if FsUtils.is_any_newer_than(prerequisites, out_filename):
             Ui.step("c++", in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
             execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
-        if is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
+        if FsUtils.is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
             Ui.debug("linking application")
             Ui.debug("  files: " + str(in_filenames))
             Ui.debug("  with libs: " + str(link_with))
@@ -126,7 +133,7 @@ class CxxToolchain:
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         cache_file = self.cache_directory(target_name) + in_filename + ".includes"
         includes = None
-        if os.path.exists(cache_file) and is_newer_than(cache_file, in_filename):
+        if os.path.exists(cache_file) and FsUtils.is_newer_than(cache_file, in_filename):
             includes = marshal.load(open(cache_file))
         else:
             execute("mkdir -p " + os.path.dirname(cache_file))
@@ -174,7 +181,7 @@ class CxxToolchain:
             filename = self.static_library_filename(lib)
             if os.path.exists(filename):
                 # TODO: proper appname
-                if is_newer_than(filename, target):
+                if FsUtils.is_newer_than(filename, target):
                     return True
         return False
 
@@ -236,7 +243,7 @@ class Target:
             Ui.debug("checking prerequisites (" + str(evaluated_prerequisites) + ") for making " + str(evaluated_artefacts))
             for artefact in evaluated_artefacts:
                 Ui.debug("  " + artefact)
-                if is_any_newer_than(evaluated_prerequisites, artefact):
+                if FsUtils.is_any_newer_than(evaluated_prerequisites, artefact):
                     Ui.debug("going on because " + str(artefact) + " need to be rebuilt")
                     should_run = True
                     break
@@ -341,7 +348,7 @@ class StaticLibrary(Target):
 
         artefact = self.toolchain.static_library_filename(self.common_parameters.name)
 
-        if is_any_newer_than(object_files, artefact):
+        if FsUtils.is_any_newer_than(object_files, artefact):
             Ui.bigstep("archiving", artefact)
             self.toolchain.link_static_library(artefact, object_files)
         else:
