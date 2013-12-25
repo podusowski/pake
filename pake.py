@@ -477,6 +477,12 @@ class VariableDeposit:
         self.modules[module_name][name].append(value)
         Ui.debug("  new value: " + str(self.modules[module_name][name]))
 
+class Configuration:
+    def __init__(self):
+        self.name = None
+        self.compiler = None
+        self.compiler_flags = None
+
 class Module:
     def __init__(self, variable_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
@@ -712,6 +718,30 @@ class Module:
         elif target_type == "phony":           self.__parse_phony(target_name, it)
         else: self.__parse_error(msg="unknown target type: " + target_type)
 
+    def __parse_configuration(self, it):
+        configuration = Configuration()
+
+        # name
+        token = it.next()
+        if token[0] == Tokenizer.TOKEN_LITERAL:
+            target_type = token[1]
+        else:
+            self.__parse_error(token)
+
+        while True:
+            token = it.next()
+            if token[0] == Tokenizer.TOKEN_LITERAL:
+                if token[1] == "compiler": configuration.compiler = self.__parse_list(it)
+                elif token[1] == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
+                else: raise ParsingError(token)
+
+            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+                break
+            else:
+                raise ParsingError(token)
+
+        Ui.debug("configuration parsed:" + str(configuration))
+
     def __parse_directive(self, it):
         while True:
             token = it.next()
@@ -719,6 +749,7 @@ class Module:
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "set" or token[1] == "append": self.__parse_set_or_append(it, token[1] == "append")
                 elif token[1] == "target":                    self.__parse_target(it)
+                elif token[1] == "configuration":             self.__parse_configuration(it)
                 else: self.__parse_error(msg="expected directive")
 
             elif token[0] == Tokenizer.TOKEN_NEWLINE:

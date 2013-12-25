@@ -1,0 +1,4 @@
+configuration clang-linux-debug compiler(clang++) compiler_flags("-O3 -g")
+
+target application hello sources(hello.cpp)
+
