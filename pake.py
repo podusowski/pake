@@ -8,7 +8,7 @@ import subprocess
 import argparse
 import marshal
 
-BUILD_DIR = os.getcwd() + "/_build"
+BUILD_DIR = os.path.normpath(os.getcwd() + "/_build")
 
 """
     utilities
@@ -422,7 +422,7 @@ class VariableDeposit:
         return ret
 
     def __eval_literal(self, current_module, s):
-        Ui.debug("evaluating literal: " + s)
+        Ui.debug("    evaluating literal: " + s)
         ret = ""
 
         STATE_READING = 1
@@ -445,7 +445,7 @@ class VariableDeposit:
                     raise ParsingError("expecting { after $")
             elif state == STATE_READING_NAME:
                 if c == "}":
-                    Ui.debug("variable: " + variable_name)
+                    Ui.debug("    variable: " + variable_name)
                     evaluated_variable = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, variable_name)])
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
@@ -477,6 +477,10 @@ class VariableDeposit:
         self.modules[module_name][name].append(value)
         Ui.debug("  new value: " + str(self.modules[module_name][name]))
 
+class ConfigurationDeposit:
+    def __init__(self):
+        self.configurations = []
+
 class Configuration:
     def __init__(self):
         self.name = None
@@ -484,7 +488,7 @@ class Configuration:
         self.compiler_flags = None
 
 class Module:
-    def __init__(self, variable_deposit, filename):
+    def __init__(self, variable_deposit, configuration_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(filename, str)
 
@@ -505,7 +509,7 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            (Tokenizer.TOKEN_LITERAL, os.getcwd() + "/" + os.path.dirname(self.filename)))
+            (Tokenizer.TOKEN_LITERAL, os.path.dirname(self.filename)))
 
         self.variable_deposit.add(
             self.name,
@@ -966,10 +970,12 @@ class Tokenizer:
 class SourceTree:
     def __init__(self):
         self.variable_deposit = VariableDeposit()
+        self.configuration_deposit = ConfigurationDeposit()
         self.files = []
         self.built_targets = []
+
         for filename in self.__find_pake_files():
-            self.files.append(Module(self.variable_deposit, filename))
+            self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
 
     def build(self, target):
         if target in self.built_targets:
@@ -999,13 +1005,14 @@ class SourceTree:
             for t in t.targets:
                 self.build(t.common_parameters.name)
 
-    def __find_pake_files(self, path = "."):
+    def __find_pake_files(self, path = os.getcwd()):
         for (dirpath, dirnames, filenames) in os.walk(path):
             for f in filenames:
-                filename = dirpath + "/" + f
-                (base, ext) = os.path.splitext(filename)
-                if ext == ".pake":
-                    yield(filename)
+                if not dirpath.startswith(BUILD_DIR):
+                    filename = dirpath + "/" + f
+                    (base, ext) = os.path.splitext(filename)
+                    if ext == ".pake":
+                        yield(filename)
 
 def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
