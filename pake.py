@@ -384,11 +384,11 @@ class VariableDeposit:
         Ui.debug("evaluating " + str(l) + " in context of module " + current_module)
         ret = []
         for token in l:
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 content = self.__eval_literal(current_module, token[1])
                 Ui.debug("  " + token[1] + " = " + content)
                 ret.append(content)
-            elif token[0] == Tokenizer.TOKEN_VARIABLE:
+            elif token[0] == Token.VARIABLE:
                 parts = token[1].split(".")
 
                 Ui.debug("  dereferencing " + str(parts))
@@ -406,7 +406,7 @@ class VariableDeposit:
                     Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + current_module)
 
                 for value in self.modules[module][name]:
-                    if value[0] == Tokenizer.TOKEN_VARIABLE:
+                    if value[0] == Token.VARIABLE:
                         re = self.eval(module, [value])
                         for v in re: ret.append(v)
                     else:
@@ -444,7 +444,7 @@ class VariableDeposit:
             elif state == STATE_READING_NAME:
                 if c == "}":
                     Ui.debug("    variable: " + variable_name)
-                    evaluated_variable = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, variable_name)])
+                    evaluated_variable = self.eval(current_module, [(Token.VARIABLE, variable_name)])
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
                     state = STATE_READING
@@ -497,9 +497,9 @@ class ConfigurationDeposit:
 class Configuration:
     def __init__(self):
         self.name = "default"
-        self.compiler = [(Tokenizer.TOKEN_LITERAL, "c++")]
+        self.compiler = [(Token.LITERAL, "c++")]
         self.compiler_flags = None
-        self.application_suffix = [(Tokenizer.TOKEN_LITERAL, "")]
+        self.application_suffix = [(Token.LITERAL, "")]
 
 class Module:
     def __init__(self, variable_deposit, configuration_deposit, filename):
@@ -524,12 +524,12 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            (Tokenizer.TOKEN_LITERAL, os.path.dirname(self.filename)))
+            (Token.LITERAL, os.path.dirname(self.filename)))
 
         self.variable_deposit.add(
             self.name,
             "$__build",
-            (Tokenizer.TOKEN_LITERAL, BUILD_DIR))
+            (Token.LITERAL, BUILD_DIR))
 
     def __parse_error(self, token = None, msg = None):
         if token != None:
@@ -549,7 +549,7 @@ class Module:
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_VARIABLE:
+        if token[0] == Token.VARIABLE:
             variable_name = token[1]
         else:
             raise ParsingError(token)
@@ -557,14 +557,14 @@ class Module:
         second_add = False
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL or token[0] == Tokenizer.TOKEN_VARIABLE:
+            if token[0] == Token.LITERAL or token[0] == Token.VARIABLE:
                 if append or second_add:
                     self.variable_deposit.append(self.name, variable_name, token)
                 else:
                     self.variable_deposit.add(self.name, variable_name, token)
                     second_add = True
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 break
             else:
                 raise ParsingError(token)
@@ -572,15 +572,15 @@ class Module:
     def __parse_list(self, it):
         ret = []
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_OPEN_PARENTHESIS:
+        if token[0] == Token.OPEN_PARENTHESIS:
 
             while True:
                 token = it.next()
-                if token[0] == Tokenizer.TOKEN_LITERAL:
+                if token[0] == Token.LITERAL:
                     ret.append(token)
-                elif token[0] == Tokenizer.TOKEN_VARIABLE:
+                elif token[0] == Token.VARIABLE:
                     ret.append(token)
-                elif token[0] == Tokenizer.TOKEN_CLOSE_PARENTHESIS:
+                elif token[0] == Token.CLOSE_PARENTHESIS:
                     break
                 else:
                     raise ParsingError(token)
@@ -592,7 +592,7 @@ class Module:
     def __parse_literal(self, it):
         token = it.next()
 
-        if token[0] in [Tokenizer.TOKEN_LITERAL, Tokenizer.TOKEN_MULTILINE_LITERAL]:
+        if token[0] in [Token.LITERAL, Token.MULTILINE_LITERAL]:
             return token[1]
         else:
             raise ParsingError(token)
@@ -600,10 +600,10 @@ class Module:
     def __parse_argument(self, it):
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_OPEN_PARENTHESIS:
+            if token[0] == Token.OPEN_PARENTHESIS:
                 run_after = self.__parse_literal(it)
                 token = it.next()
-                if token[0] == Tokenizer.TOKEN_CLOSE_PARENTHESIS: return run_after
+                if token[0] == Token.CLOSE_PARENTHESIS: return run_after
                 else: raise ParsingError(Token)
             else:
                 raise ParsingError(Token)
@@ -648,13 +648,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 elif token[1] == "link_with": link_with = self.__parse_list(it)
                 elif token[1] == "library_dirs": library_dirs = self.__parse_list(it)
                 else: self.__parse_error(token)
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 break
             else:
                 self.__parse_error(token)
@@ -673,11 +673,11 @@ class Module:
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 else: raise ParsingError()
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 break
             else:
                 raise ParsingError()
@@ -696,13 +696,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif token[1] == "artefacts": common_parameters.artefacts = self.__parse_list(it)
                 elif token[1] == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
                 else: raise ParsingError(token)
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 break
             else:
                 raise ParsingError(token)
@@ -712,11 +712,11 @@ class Module:
 
     def __parse_target(self, it):
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_LITERAL:
+        if token[0] == Token.LITERAL:
             target_type = token[1]
 
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 target_name = token[1]
             else:
                 self.__parse_error(token)
@@ -733,20 +733,20 @@ class Module:
 
         # name
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_LITERAL:
+        if token[0] == Token.LITERAL:
             configuration.name = token[1]
         else:
             self.__parse_error(token)
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 if token[1] == "compiler": configuration.compiler = self.__parse_list(it)
                 elif token[1] == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token[1] == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
                 else: raise ParsingError(token)
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 break
             else:
                 raise ParsingError(token)
@@ -758,13 +758,13 @@ class Module:
         while True:
             token = it.next()
 
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token[0] == Token.LITERAL:
                 if token[1] == "set" or token[1] == "append": self.__parse_set_or_append(it, token[1] == "append")
                 elif token[1] == "target":                    self.__parse_target(it)
                 elif token[1] == "configuration":             self.__parse_configuration(it)
                 else: self.__parse_error(msg="expected directive")
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token[0] == Token.NEWLINE:
                 continue
             else:
                 return False
@@ -805,14 +805,19 @@ class Buffer:
     def eof(self):
         return self.position >= len(self.buf) or self.position < 0
 
-class Tokenizer:
-    TOKEN_OPEN_PARENTHESIS = 1
-    TOKEN_CLOSE_PARENTHESIS = 2
-    TOKEN_LITERAL = 3
-    TOKEN_VARIABLE = 4
-    TOKEN_NEWLINE = 5
-    TOKEN_MULTILINE_LITERAL = 6
+class Token:
+    OPEN_PARENTHESIS = 1
+    CLOSE_PARENTHESIS = 2
+    LITERAL = 3
+    VARIABLE = 4
+    NEWLINE = 5
+    MULTILINE_LITERAL = 6
 
+    def __init__(self):
+        self.token_type = None
+        self.token_content = None
+
+class Tokenizer:
     def __init__(self, filename):
         buf = Buffer(filename)
         self.tokens = []
@@ -865,7 +870,7 @@ class Tokenizer:
                 char = buf.value()
 
                 if self.__try_to_read_token(buf, '"""'):
-                    self.__add_token(Tokenizer.TOKEN_MULTILINE_LITERAL, data)
+                    self.__add_token(Token.MULTILINE_LITERAL, data)
                     return True
                 else:
                     data = data + char
@@ -894,15 +899,15 @@ class Tokenizer:
         char = buf.value()
 
         if char == '\n':
-            self.__add_token(Tokenizer.TOKEN_NEWLINE, "<new-line>")
+            self.__add_token(Token.NEWLINE, "<new-line>")
             buf.rewind()
             return True
         elif char == '(':
-            self.__add_token(Tokenizer.TOKEN_OPEN_PARENTHESIS, "(")
+            self.__add_token(Token.OPEN_PARENTHESIS, "(")
             buf.rewind()
             return True
         elif char == ')':
-            self.__add_token(Tokenizer.TOKEN_CLOSE_PARENTHESIS, ")")
+            self.__add_token(Token.CLOSE_PARENTHESIS, ")")
             buf.rewind()
             return True
 
@@ -912,8 +917,8 @@ class Tokenizer:
         if buf.eof() or not self.__is_valid_identifier_char(buf.value()):
             return False
 
-        if buf.value() == '$':  token_type = Tokenizer.TOKEN_VARIABLE
-        else:                   token_type = Tokenizer.TOKEN_LITERAL
+        if buf.value() == '$':  token_type = Token.VARIABLE
+        else:                   token_type = Token.LITERAL
 
         data = ''
         while not buf.eof():
@@ -938,7 +943,7 @@ class Tokenizer:
                     raise Exception("parse error")
 
                 if self.__try_to_read_token(buf, '"'):
-                    self.__add_token(Tokenizer.TOKEN_LITERAL, data)
+                    self.__add_token(Token.LITERAL, data)
                     return True
                 else:
                     char = buf.value()
