@@ -943,6 +943,23 @@ class Tokenizer:
             return True
         return False
 
+    def __try_tokenize_slash_newline(self, buf):
+        if buf.eof():
+            return False
+
+        pos = buf.tell()
+
+        char = buf.value()
+        if char == "\\":
+            buf.rewind()
+            char = buf.value()
+            if char == "\n":
+                buf.rewind()
+                return True
+        buf.seek(pos)
+
+        return False
+
     def __try_tokenize_simple_chars(self, buf):
         if buf.eof():
             return False
@@ -1022,6 +1039,7 @@ class Tokenizer:
         while not buf.eof():
             ret = (
                 self.__try_tokenize_comment(buf) or
+                self.__try_tokenize_slash_newline(buf) or
                 self.__try_tokenize_simple_chars(buf) or
                 self.__try_tokenize_quoted_literal(buf) or
                 self.__try_tokenize_variable_or_literal(buf) or
