@@ -2,6 +2,9 @@
 
 rm -rf _build
 
+assert $pake hello_default
+assert test -f _build/hello_default
+
 assert $pake -c fake hello
 assert test -f _build/fake
 

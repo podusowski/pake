@@ -369,6 +369,7 @@ class VariableDeposit:
 
     def export_configuration(self, configuration):
         Ui.debug("exporting configuration variables")
+        self.add_empty("__configuration", "$__null")
         for (value, name) in configuration.export:
             self.add("__configuration", name.content, value)
 
@@ -406,6 +407,9 @@ class VariableDeposit:
                 elif len(parts) == 2:
                     module = parts[0][1:] # lose the $
                     name = "$" + parts[1]
+
+                if not module in self.modules:
+                    Ui.parse_error(msg="no such module: " + module)
 
                 # TODO: make some comment about __configuration variables
                 if not name in self.modules[module]:
@@ -461,6 +465,15 @@ class VariableDeposit:
 
         return ret
 
+    def add_empty(self, module_name, name):
+        Ui.debug("adding empty variable in module " + module_name + " called " + name)
+
+        if not module_name in self.modules:
+            self.modules[module_name] = {}
+
+        self.modules[module_name][name] = []
+
+
     def add(self, module_name, name, value):
         Ui.debug("adding variable in module " + module_name + " called " + name + " with value of " + str(value))
 
@@ -483,18 +496,15 @@ class VariableDeposit:
 
 class ConfigurationDeposit:
     def __init__(self):
-        self.configurations = []
+        self.configurations = {}
         self.__create_default_configuration()
 
     def get_configuration(self, configuration_name):
-        for c in self.configurations:
-            if c.name == configuration_name:
-                return c
-        return None
+        return self.configurations[configuration_name]
 
     def add_configuration(self, configuration):
         Ui.debug("adding configuration: " + str(configuration))
-        self.configurations.append(configuration)
+        self.configurations[configuration.name] = configuration
 
     def __create_default_configuration(self):
         configuration = Configuration()
@@ -537,6 +547,10 @@ class Module:
             self.name,
             "$__build",
             Token(Token.LITERAL, BUILD_DIR))
+
+        self.variable_deposit.add_empty(
+            self.name,
+            "$__null")
 
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
