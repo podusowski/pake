@@ -590,17 +590,6 @@ class Module:
         else:
             Ui.parse_error(token)
 
-    def __parse_argument(self, it):
-        while True:
-            token = it.next()
-            if token.is_a(Token.OPEN_PARENTHESIS):
-                run_after = self.__parse_literal(it)
-                token = it.next()
-                if token.is_a(Token.CLOSE_PARENTHESIS): return run_after
-                else: Ui.parse_error(Token)
-            else:
-                Ui.parse_error(token)
-
     def __try_parse_target_common_parameters(self, common_parameters, token, it):
         if token.content == "depends_on":
             common_parameters.depends_on = self.__parse_list(it)
