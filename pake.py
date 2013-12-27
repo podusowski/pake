@@ -363,18 +363,6 @@ class StaticLibrary(CompileableTarget):
     parser
 """
 
-class ParsingError(Exception):
-    def __init__(self, token, hint = None):
-        self.token = token
-        self.hint = hint
-
-    def __str__(self):
-        (t, c) = self.token
-        msg = "parsing error, unexpected token: " + str(t) + "|" + str(c)
-        if self.hint != None:
-            msg = msg + ", hint: " + self.hint
-        return msg
-
 class VariableDeposit:
     def __init__(self):
         self.modules = {}
@@ -426,7 +414,7 @@ class VariableDeposit:
                         ret.append(content)
                         Ui.debug("    = " + str(content))
             else:
-                raise ParsingError("unknown token")
+                Ui.parse_error(token)
 
         Ui.debug("  " + str(ret))
         return ret
@@ -685,7 +673,7 @@ class Module:
             elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError()
+                Ui.parse_error(token)
 
         target = StaticLibrary(common_parameters, common_cxx_parameters)
         self.__add_target(target)
@@ -705,12 +693,12 @@ class Module:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif token.content == "artefacts": common_parameters.artefacts = self.__parse_list(it)
                 elif token.content == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
-                else: raise ParsingError(token)
+                else: Ui.parse_error(token)
 
             elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError(token)
+                Ui.parse_error(token)
 
         target = Phony(common_parameters)
         self.__add_target(target)
@@ -749,12 +737,12 @@ class Module:
                 if token.content == "compiler": configuration.compiler = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
-                else: raise ParsingError(token)
+                else: Ui.parse_error(token)
 
             elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError(token)
+                Ui.parse_error(token)
 
         Ui.debug("configuration parsed:" + str(configuration))
         self.configuration_deposit.add_configuration(configuration)
@@ -779,7 +767,7 @@ class Module:
 
         try:
             if not self.__parse_directive(it):
-                raise ParsingError()
+                Ui.parse_error()
         except StopIteration:
             Ui.debug("eof")
 
