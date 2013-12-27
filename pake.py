@@ -104,7 +104,7 @@ class CxxToolchain:
         prerequisites.append(in_filename)
 
         if is_any_newer_than(prerequisites, out_filename):
-            Ui.step("c++", in_filename)
+            Ui.step(self.compiler_cmd, in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
             execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
 
