@@ -562,6 +562,7 @@ class Module:
             else:
                 Ui.parse_error(token)
 
+    # (something1 something2)
     def __parse_list(self, it):
         ret = []
         token = it.next()
@@ -580,6 +581,40 @@ class Module:
         else:
             Ui.parse_error(token)
 
+        return ret
+
+    # ($var1:$var2 something4:$var1)
+    def __parse_colon_list(self, it):
+        ret = []
+        token = it.next()
+        if token.is_a(Token.OPEN_PARENTHESIS):
+
+            while True:
+                token = it.next()
+
+                first = None
+                second = None
+
+                if token.is_a(Token.LITERAL) or token.is_a(Token.VARIABLE):
+                    first = token
+                    token = it.next()
+                    if token.is_a(Token.COLON):
+                        token = it.next()
+                        if token.is_a(Token.VARIABLE):
+                            second = token
+                            ret.append((first, second))
+                        else:
+                            Ui.parse_error(token, msg="expected variable")
+                    else:
+                        Ui.parse_error(token, msg="expected colon")
+                elif token.is_a(Token.CLOSE_PARENTHESIS):
+                    break
+                else:
+                    Ui.parse_error(token)
+        else:
+            Ui.parse_error(token)
+
+        Ui.debug("colon list: " + str(ret))
         return ret
 
     def __try_parse_target_common_parameters(self, common_parameters, token, it):
@@ -718,6 +753,7 @@ class Module:
                 if token.content == "compiler": configuration.compiler = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
+                elif token.content == "export": configuration.export = self.__parse_colon_list(it)
                 else: Ui.parse_error(token)
 
             elif token.is_a(Token.NEWLINE):
@@ -786,6 +822,7 @@ class Token:
     VARIABLE = 4
     NEWLINE = 5
     MULTILINE_LITERAL = 6
+    COLON = 7
 
     def __init__(self, token_type, content, filename = None, line = None, col = None):
         self.token_type = token_type
@@ -796,7 +833,12 @@ class Token:
         self.col = col
 
     def __str__(self):
-        return "token(" + str(self.token_type) + ", " + self.content + ")"
+        if self.is_a(Token.LITERAL):
+            return "literal: " + self.content
+        elif self.is_a(Token.VARIABLE):
+            return "variable: " + self.content
+        else:
+            return self.content
 
     def location_str(self):
         return str(self.filename) + ":" + str(self.line) + ":" + str(self.col)
@@ -898,6 +940,10 @@ class Tokenizer:
             self.__add_token(Token.CLOSE_PARENTHESIS, ")")
             buf.rewind()
             return True
+        elif char == ':':
+            self.__add_token(Token.COLON, ":")
+            buf.rewind()
+            return True
 
         return False
 
@@ -963,7 +1009,7 @@ class Tokenizer:
             )
 
             if not ret:
-                raise Exception("parse error " + str(buf.value()))
+                Ui.parse_error(msg="unexpected character: " + str(buf.value()))
 
             if buf.eof():
                 break

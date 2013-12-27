@@ -1,6 +1,6 @@
 configuration clang-linux-debug compiler(clang++) compiler_flags("-O0 -g")
 configuration fake compiler("./fake.sh") compiler_flags("-O0 -g")
-configuration windows-mingw compiler(i686-w64-mingw32-c++) application_suffix(.exe)
+configuration windows-mingw compiler(i686-w64-mingw32-c++) application_suffix(.exe) export($a:$v $b:$c)
 
 target application hello sources(hello.cpp)
 
