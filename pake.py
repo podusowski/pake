@@ -582,14 +582,6 @@ class Module:
 
         return ret
 
-    def __parse_literal(self, it):
-        token = it.next()
-
-        if token.token_type in [Token.LITERAL, Token.MULTILINE_LITERAL]:
-            return token.content
-        else:
-            Ui.parse_error(token)
-
     def __try_parse_target_common_parameters(self, common_parameters, token, it):
         if token.content == "depends_on":
             common_parameters.depends_on = self.__parse_list(it)
