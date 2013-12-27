@@ -407,6 +407,7 @@ class VariableDeposit:
                     module = parts[0][1:] # lose the $
                     name = "$" + parts[1]
 
+                # TODO: make some comment about __configuration variables
                 if not name in self.modules[module]:
                     Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
