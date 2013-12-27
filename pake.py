@@ -78,8 +78,12 @@ class Ui:
 """
 
 class CxxToolchain:
-    def __init__(self):
-        self.compiler_cmd = "c++"
+    def __init__(self, configuration, variable_deposit, module_name):
+        evaluated_compiler = variable_deposit.eval(
+            module_name,
+            configuration.compiler)
+
+        self.compiler_cmd = " ".join(evaluated_compiler)
         self.compiler_flags = "-I."
         self.archiver_cmd = "ar"
 
@@ -183,7 +187,7 @@ class CxxToolchain:
 """
 
 class CommonTargetParameters:
-    def __init__(self, variable_deposit, root_path, module_name, name, toolchain):
+    def __init__(self, variable_deposit, root_path, module_name, name):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(module_name, str)
         assert isinstance(name, str)
@@ -192,7 +196,6 @@ class CommonTargetParameters:
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
-        self.toolchain = toolchain
         self.artefacts = []
         self.prerequisites = []
         self.depends_on = []
@@ -259,7 +262,7 @@ class Phony(Target):
     def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
 
-    def build(self):
+    def build(self, configuration):
         Ui.debug("phony build")
 
 class Application(Target):
@@ -270,9 +273,10 @@ class Application(Target):
         self.common_cxx_parameters = common_cxx_parameters
         self.link_with = link_with
         self.library_dirs = library_dirs
-        self.toolchain = CxxToolchain()
 
-    def build(self):
+    def build(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
+
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
@@ -292,15 +296,15 @@ class Application(Target):
         Ui.debug("building application from " + str(evaluated_sources))
 
         for source in evaluated_sources:
-            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
+            object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
-            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+            toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dirs = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dirs)
 
-        self.toolchain.link_application(
-            self.toolchain.application_filename(self.common_parameters.name),
+        toolchain.link_application(
+            toolchain.application_filename(self.common_parameters.name),
             object_files,
             evaluated_link_with,
             evaluated_library_dirs)
@@ -313,9 +317,9 @@ class StaticLibrary(Target):
 
         self.common_parameters = common_parameters
         self.common_cxx_parameters = common_cxx_parameters
-        self.toolchain = CxxToolchain()
 
-    def build(self):
+    def build(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
@@ -335,15 +339,15 @@ class StaticLibrary(Target):
         Ui.debug("building static_library from " + str(evaluated_sources))
 
         for source in evaluated_sources:
-            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
-            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+            object_file = toolchain.object_filename(self.common_parameters.name, source)
+            toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
             object_files.append(object_file)
 
-        artefact = self.toolchain.static_library_filename(self.common_parameters.name)
+        artefact = toolchain.static_library_filename(self.common_parameters.name)
 
         if is_any_newer_than(object_files, artefact):
             Ui.bigstep("archiving", artefact)
-            self.toolchain.link_static_library(artefact, object_files)
+            toolchain.link_static_library(artefact, object_files)
         else:
             Ui.bigstep("up to date", artefact)
 
@@ -416,7 +420,7 @@ class VariableDeposit:
                         ret.append(content)
                         Ui.debug("    = " + str(content))
             else:
-                raise ParsingError("")
+                raise ParsingError("unknown token")
 
         Ui.debug("  " + str(ret))
         return ret
@@ -480,6 +484,23 @@ class VariableDeposit:
 class ConfigurationDeposit:
     def __init__(self):
         self.configurations = []
+        self.__create_default_configuration()
+
+    def get_configuration(self, configuration_name):
+        for c in self.configurations:
+            if c.name == configuration_name:
+                return c
+        return None
+
+    def add_configuration(self, configuration):
+        Ui.debug("adding configuration: " + str(configuration))
+        self.configurations.append(configuration)
+
+    def __create_default_configuration(self):
+        configuration = Configuration()
+        configuration.name = "default"
+        configuration.compiler = [(Tokenizer.TOKEN_LITERAL, "c++")]
+        self.add_configuration(configuration)
 
 class Configuration:
     def __init__(self):
@@ -495,6 +516,7 @@ class Module:
         Ui.debug("parsing " + filename)
 
         self.variable_deposit = variable_deposit
+        self.configuration_deposit = configuration_deposit
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
@@ -623,14 +645,11 @@ class Module:
         link_with = []
         library_dirs = []
 
-        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
-        common_parameters.artefact = toolchain.application_filename(target_name)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -651,14 +670,11 @@ class Module:
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
-        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
-        common_parameters.artefact = toolchain.static_library_filename(target_name)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -677,14 +693,11 @@ class Module:
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
-        toolchain = CxxToolchain()
-
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
@@ -728,7 +741,7 @@ class Module:
         # name
         token = it.next()
         if token[0] == Tokenizer.TOKEN_LITERAL:
-            target_type = token[1]
+            configuration.name = token[1]
         else:
             self.__parse_error(token)
 
@@ -745,6 +758,7 @@ class Module:
                 raise ParsingError(token)
 
         Ui.debug("configuration parsed:" + str(configuration))
+        self.configuration_deposit.add_configuration(configuration)
 
     def __parse_directive(self, it):
         while True:
@@ -968,23 +982,25 @@ class Tokenizer:
                 break
 
 class SourceTree:
-    def __init__(self):
+    def __init__(self, configuration_deposit):
         self.variable_deposit = VariableDeposit()
-        self.configuration_deposit = ConfigurationDeposit()
+        self.configuration_deposit = configuration_deposit
         self.files = []
         self.built_targets = []
 
         for filename in self.__find_pake_files():
             self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
 
-    def build(self, target):
+    def build(self, target, configuration_name):
         if target in self.built_targets:
             Ui.debug(target + " already build, skipping")
             return
 
         self.built_targets.append(target)
 
-        Ui.debug("building " + target)
+        configuration = self.configuration_deposit.get_configuration(configuration_name)
+
+        Ui.debug("building " + target + " with configuration: " + str(configuration))
         found = False
         for f in self.files:
             for t in f.targets:
@@ -993,17 +1009,18 @@ class SourceTree:
                     evalueated_depends_on = self.variable_deposit.eval(f.name, t.common_parameters.depends_on)
                     for dependency in evalueated_depends_on:
                         Ui.debug(str(t) + " depends on " + dependency)
-                        self.build(dependency)
+                        self.build(dependency, configuration_name)
                     t.before()
-                    t.build()
+                    #Ui.bigstep("building", t.common_parameters.name)
+                    t.build(configuration)
                     t.after()
         if not found:
             Ui.fatal("target " + Ui.BOLD + target + Ui.RESET + " not found in the source tree")
 
-    def build_all(self):
+    def build_all(self, configuration_name):
         for f in self.files:
             for t in t.targets:
-                self.build(t.common_parameters.name)
+                self.build(t.common_parameters.name, configuration_name)
 
     def __find_pake_files(self, path = os.getcwd()):
         for (dirpath, dirnames, filenames) in os.walk(path):
@@ -1016,10 +1033,12 @@ class SourceTree:
 
 def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
-    parser.add_argument('target', metavar='target', nargs="*", help='target to be built')
+    parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
+    parser.add_argument('-c', action='store', dest='configuration', default="default", nargs="?", help='configuration to be used')
 
-    tree = SourceTree()
+    configuration_deposit = ConfigurationDeposit()
+    tree = SourceTree(configuration_deposit)
 
     targets = []
     for module in tree.files:
@@ -1027,14 +1046,15 @@ def main():
             targets.append(t.common_parameters.name)
 
     args = parser.parse_args()
+    Ui.debug(str(args))
 
     if len(args.target) > 0:
         for target in args.target:
-            tree.build(target)
+            tree.build(target, args.configuration)
     elif args.all:
         Ui.bigstep("building all targets", " ".join(targets))
         for target in targets:
-            tree.build(target)
+            tree.build(target, args.configuration)
     else:
         Ui.info(Ui.BOLD + "targets found in this source tree:" + Ui.RESET)
         for target in targets:

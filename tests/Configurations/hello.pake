@@ -1,4 +1,5 @@
-configuration clang-linux-debug compiler(clang++) compiler_flags("-O3 -g")
+configuration clang-linux-debug compiler(clang++) compiler_flags("-O0 -g")
+configuration fake compiler("./fake.sh") compiler_flags("-O0 -g")
 
 target application hello sources(hello.cpp)
 

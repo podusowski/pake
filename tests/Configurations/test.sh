@@ -2,8 +2,8 @@
 
 rm -rf _build
 
-assert $pake hello
-assert _build/hello
+assert $pake -c fake hello
+assert test -f _build/fake
 
 rm -rf _build
 
