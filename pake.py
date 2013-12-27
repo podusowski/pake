@@ -512,7 +512,7 @@ class ConfigurationDeposit:
 
 class Configuration:
     def __init__(self):
-        self.name = "default"
+        self.name = "__default"
         self.compiler = [Token(Token.LITERAL, "c++")]
         self.compiler_flags = None
         self.application_suffix = [Token(Token.LITERAL, "")]
@@ -1092,7 +1092,7 @@ def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
     parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
-    parser.add_argument('-c', action='store', dest='configuration', default="default", nargs="?", help='configuration to be used')
+    parser.add_argument('-c', action='store', dest='configuration', default="__default", nargs="?", help='configuration to be used')
     args = parser.parse_args()
     Ui.debug(str(args))
 

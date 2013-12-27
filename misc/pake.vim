@@ -8,8 +8,10 @@ syn keyword pakeArgument        sources link_with depends_on run_before run_afte
 syn keyword pakeArgument        application_suffix compiler export
 syn match pakeSpecialVariable   "__path"
 syn match pakeSpecialVariable   "__build"
+syn match pakeSpecialVariable   "__null"
+syn match pakeSpecialVariable   "__default"
 syn match pakeComment           "#.*$"
-syn match pakeIdentifier1       "$[^ )]*"
+syn match pakeIdentifier1       "$[^ )]*" contains=pakeSpecialVariable
 syn match pakeIdentifier2       "${[^ )]*}" contained
 syn region pakeString           start='"' end='"' contains=pakeIdentifier2
 
