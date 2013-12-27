@@ -367,6 +367,11 @@ class VariableDeposit:
     def __init__(self):
         self.modules = {}
 
+    def export_configuration(self, configuration):
+        Ui.debug("exporting configuration variables")
+        for (value, name) in configuration.export:
+            self.add("__configuration", name.content, value)
+
     def polute_environment(self, current_module):
         Ui.debug("poluting environment")
         for module in self.modules:
@@ -403,7 +408,7 @@ class VariableDeposit:
                     name = "$" + parts[1]
 
                 if not name in self.modules[module]:
-                    Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + current_module)
+                    Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
                 for value in self.modules[module][name]:
                     if value.is_a(Token.VARIABLE):
@@ -500,6 +505,7 @@ class Configuration:
         self.compiler = [Token(Token.LITERAL, "c++")]
         self.compiler_flags = None
         self.application_suffix = [Token(Token.LITERAL, "")]
+        self.export = []
 
 class Module:
     def __init__(self, variable_deposit, configuration_deposit, filename):
@@ -784,7 +790,7 @@ class Module:
 
         try:
             if not self.__parse_directive(it):
-                Ui.parse_error()
+                Ui.parse_error(msg="unknown :(")
         except StopIteration:
             Ui.debug("eof")
 
@@ -1015,7 +1021,7 @@ class Tokenizer:
                 break
 
 class SourceTree:
-    def __init__(self, configuration_deposit):
+    def __init__(self, configuration_deposit, configuration_name):
         self.variable_deposit = VariableDeposit()
         self.configuration_deposit = configuration_deposit
         self.files = []
@@ -1023,6 +1029,9 @@ class SourceTree:
 
         for filename in self.__find_pake_files():
             self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
+
+        configuration = self.configuration_deposit.get_configuration(configuration_name)
+        self.variable_deposit.export_configuration(configuration)
 
     def build(self, target, configuration_name):
         if target in self.built_targets:
@@ -1069,17 +1078,16 @@ def main():
     parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
     parser.add_argument('-c', action='store', dest='configuration', default="default", nargs="?", help='configuration to be used')
+    args = parser.parse_args()
+    Ui.debug(str(args))
 
     configuration_deposit = ConfigurationDeposit()
-    tree = SourceTree(configuration_deposit)
+    tree = SourceTree(configuration_deposit, args.configuration)
 
     targets = []
     for module in tree.files:
         for t in module.targets:
             targets.append(t.common_parameters.name)
-
-    args = parser.parse_args()
-    Ui.debug(str(args))
 
     if len(args.target) > 0:
         for target in args.target:

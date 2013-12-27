@@ -1,6 +1,13 @@
-configuration clang-linux-debug compiler(clang++) compiler_flags("-O0 -g")
+set $flag_windows "-DWINDOWS"
+set $flag_linux "-DLINUX"
+
+# sadly, when exporting variables, module has to be present
+
+configuration linux compiler_flags("-O0 -g") export($hello.flag_linux:$flags)
+configuration windows compiler(i686-w64-mingw32-c++) application_suffix(.exe) export($hello.flag_windows:$flags)
 configuration fake compiler("./fake.sh") compiler_flags("-O0 -g")
-configuration windows-mingw compiler(i686-w64-mingw32-c++) application_suffix(.exe) export($a:$v $b:$c)
 
 target application hello sources(hello.cpp)
+target application hello_linux sources(hello_linux.cpp) compiler_flags($__configuration.flags)
+target application hello_windows sources(hello_windows.cpp) compiler_flags($__configuration.flags)
 
