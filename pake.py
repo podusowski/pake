@@ -268,20 +268,15 @@ class Phony(Target):
     def build(self, configuration):
         Ui.debug("phony build")
 
-class Application(Target):
-    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dirs):
+class CompileableTarget(Target):
+    def __init__(self, common_parameters, common_cxx_parameters):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
         self.common_cxx_parameters = common_cxx_parameters
-        self.link_with = link_with
-        self.library_dirs = library_dirs
 
-    def build(self, configuration):
+    def build_objects(self, configuration):
         toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
-
-        root_dir = os.getcwd()
-        os.chdir(self.common_parameters.root_path)
 
         object_files = []
         evaluated_sources = self.common_parameters.variable_deposit.eval(
@@ -296,12 +291,29 @@ class Application(Target):
             self.common_parameters.module_name,
             self.common_cxx_parameters.compiler_flags)
 
-        Ui.debug("building application from " + str(evaluated_sources))
+        Ui.debug("building objects from " + str(evaluated_sources))
 
         for source in evaluated_sources:
             object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
             toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+
+        return object_files
+
+class Application(CompileableTarget):
+    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dirs):
+        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
+
+        self.link_with = link_with
+        self.library_dirs = library_dirs
+
+    def build(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
+
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
+        object_files = self.build_objects(configuration)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dirs = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dirs)
@@ -314,37 +326,16 @@ class Application(Target):
 
         os.chdir(root_dir)
 
-class StaticLibrary(Target):
+class StaticLibrary(CompileableTarget):
     def __init__(self, common_parameters, common_cxx_parameters):
-        Target.__init__(self, common_parameters)
-
-        self.common_parameters = common_parameters
-        self.common_cxx_parameters = common_cxx_parameters
+        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
 
     def build(self, configuration):
         toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        object_files = []
-        evaluated_sources = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.sources)
-
-        evaluated_include_dirs = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.include_dirs)
-
-        evaluated_compiler_flags = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.compiler_flags)
-
-        Ui.debug("building static_library from " + str(evaluated_sources))
-
-        for source in evaluated_sources:
-            object_file = toolchain.object_filename(self.common_parameters.name, source)
-            toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
-            object_files.append(object_file)
+        object_files = self.build_objects(configuration)
 
         artefact = toolchain.static_library_filename(self.common_parameters.name)
 
