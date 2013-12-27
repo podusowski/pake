@@ -68,6 +68,18 @@ class Ui:
         sys.exit(1)
 
     @staticmethod
+    def parse_error(token = None, msg = None):
+        if token != None:
+            s = token.location_str()
+            if msg != None:
+                s += ": " + msg
+            else:
+                s += ": unexpected " + str(token)
+            Ui.fatal(s)
+        else:
+            Ui.fatal(msg)
+
+    @staticmethod
     def debug(s, env = None):
         if "DEBUG" in os.environ:
             if env == None or env in os.environ:
@@ -440,7 +452,7 @@ class VariableDeposit:
                 if c == "{":
                     state = STATE_READING_NAME
                 else:
-                    raise ParsingError("expecting { after $")
+                    Ui.parse_error(msg="expecting { after $")
             elif state == STATE_READING_NAME:
                 if c == "}":
                     Ui.debug("    variable: " + variable_name)
@@ -531,14 +543,6 @@ class Module:
             "$__build",
             Token(Token.LITERAL, BUILD_DIR))
 
-    def __parse_error(self, token = None, msg = None):
-        if token != None:
-            s = token.location_str()
-            s += ": unexpected " + str(token)
-            Ui.fatal(s)
-        else:
-            Ui.fatal(msg)
-
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
         (root, ext) = os.path.splitext(base)
@@ -553,7 +557,7 @@ class Module:
         if token.is_a(Token.VARIABLE):
             variable_name = token.content
         else:
-            raise ParsingError(token)
+            Ui.parse_error(token)
 
         second_add = False
         while True:
@@ -568,7 +572,7 @@ class Module:
             elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError(token)
+                Ui.parse_error(token)
 
     def __parse_list(self, it):
         ret = []
@@ -584,9 +588,9 @@ class Module:
                 elif token.is_a(Token.CLOSE_PARENTHESIS):
                     break
                 else:
-                    raise ParsingError(token)
+                    Ui.parse_error(token)
         else:
-            raise ParsingError(token)
+            Ui.parse_error(token)
 
         return ret
 
@@ -596,7 +600,7 @@ class Module:
         if token.token_type in [Token.LITERAL, Token.MULTILINE_LITERAL]:
             return token.content
         else:
-            raise ParsingError(token)
+            Ui.parse_error(token)
 
     def __parse_argument(self, it):
         while True:
@@ -605,9 +609,9 @@ class Module:
                 run_after = self.__parse_literal(it)
                 token = it.next()
                 if token.is_a(Token.CLOSE_PARENTHESIS): return run_after
-                else: raise ParsingError(Token)
+                else: Ui.parse_error(Token)
             else:
-                raise ParsingError(Token)
+                Ui.parse_error(token)
 
     def __try_parse_target_common_parameters(self, common_parameters, token, it):
         if token.content == "depends_on":
@@ -654,11 +658,11 @@ class Module:
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
                 elif token.content == "link_with": link_with = self.__parse_list(it)
                 elif token.content == "library_dirs": library_dirs = self.__parse_list(it)
-                else: self.__parse_error(token)
+                else: Ui.parse_error(token)
             elif token.is_a(Token.NEWLINE):
                 break
             else:
-                self.__parse_error(token)
+                Ui.parse_error(token)
 
         target = Application(common_parameters, common_cxx_parameters, link_with, library_dirs)
         self.__add_target(target)
@@ -677,7 +681,7 @@ class Module:
             if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
-                else: raise ParsingError()
+                else: Ui.parse_error(token)
             elif token.is_a(Token.NEWLINE):
                 break
             else:
@@ -720,14 +724,14 @@ class Module:
             if token.is_a(Token.LITERAL):
                 target_name = token.content
             else:
-                self.__parse_error(token)
+                Ui.parse_error(token)
         else:
-            self.__parse_error(token)
+            Ui.parse_error(token)
 
         if target_type == "application":       self.__parse_application_target(target_name, it)
         elif target_type == "static_library":  self.__parse_static_library(target_name, it)
         elif target_type == "phony":           self.__parse_phony(target_name, it)
-        else: self.__parse_error(msg="unknown target type: " + target_type)
+        else: Ui.parse_error(token, msg="unknown target type: " + target_type)
 
     def __parse_configuration(self, it):
         configuration = Configuration()
@@ -737,7 +741,7 @@ class Module:
         if token.is_a(Token.LITERAL):
             configuration.name = token.content
         else:
-            self.__parse_error(token)
+            Ui.parse_error(token)
 
         while True:
             token = it.next()
@@ -763,7 +767,7 @@ class Module:
                 if token.content == "set" or token.content == "append": self.__parse_set_or_append(it, token.content == "append")
                 elif token.content == "target":                    self.__parse_target(it)
                 elif token.content == "configuration":             self.__parse_configuration(it)
-                else: self.__parse_error(msg="expected directive")
+                else: Ui.parse_error(token, msg="expected directive")
 
             elif token.is_a(Token.NEWLINE):
                 continue
