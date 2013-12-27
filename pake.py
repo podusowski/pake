@@ -79,13 +79,13 @@ class Ui:
 
 class CxxToolchain:
     def __init__(self, configuration, variable_deposit, module_name):
-        evaluated_compiler = variable_deposit.eval(
-            module_name,
-            configuration.compiler)
+        self.variable_deposit = variable_deposit
+        self.module_name = module_name
 
-        self.compiler_cmd = " ".join(evaluated_compiler)
+        self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = "-I."
         self.archiver_cmd = "ar"
+        self.application_suffix = self.__simple_eval(configuration.application_suffix)
 
     def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
         prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
@@ -122,10 +122,13 @@ class CxxToolchain:
         return BUILD_DIR + "/lib" + target_name + ".a"
 
     def application_filename(self, target_name):
-        return BUILD_DIR + "/" + target_name
+        return BUILD_DIR + "/" + target_name + self.application_suffix
 
     def cache_directory(self, target_name):
         return BUILD_DIR + "/build." + target_name + "/"
+
+    def __simple_eval(self, tokens):
+        return " ".join(self.variable_deposit.eval(self.module_name, tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         cache_file = self.cache_directory(target_name) + in_filename + ".includes"
@@ -498,15 +501,14 @@ class ConfigurationDeposit:
 
     def __create_default_configuration(self):
         configuration = Configuration()
-        configuration.name = "default"
-        configuration.compiler = [(Tokenizer.TOKEN_LITERAL, "c++")]
         self.add_configuration(configuration)
 
 class Configuration:
     def __init__(self):
-        self.name = None
-        self.compiler = None
+        self.name = "default"
+        self.compiler = [(Tokenizer.TOKEN_LITERAL, "c++")]
         self.compiler_flags = None
+        self.application_suffix = [(Tokenizer.TOKEN_LITERAL, "")]
 
 class Module:
     def __init__(self, variable_deposit, configuration_deposit, filename):
@@ -749,6 +751,7 @@ class Module:
             token = it.next()
             if token[0] == Tokenizer.TOKEN_LITERAL:
                 if token[1] == "compiler": configuration.compiler = self.__parse_list(it)
+                elif token[1] == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token[1] == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
                 else: raise ParsingError(token)
 

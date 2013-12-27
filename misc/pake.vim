@@ -2,9 +2,10 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword pakeDirective       target set append
+syn keyword pakeDirective       target set append configuration
 syn keyword pakeTargetType      application static_library phony
 syn keyword pakeArgument        sources link_with depends_on run_before run_after library_dirs include_dirs compiler_flags artefacts prerequisites
+syn keyword pakeArgument        application_suffix compiler
 syn match pakeSpecialVariable   "__path"
 syn match pakeSpecialVariable   "__build"
 syn match pakeComment           "#.*$"
