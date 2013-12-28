@@ -1,11 +1,11 @@
 . ../common.sh
-rm -rf _build
+rm -rf __build
 
-    mkdir -p _build
+    mkdir -p __build
     assert $pake hello
-    assert test -f _build/test1
-    assert test -f _build/test2
-    assert test -f _build/test3
-    assert test -f _build/test10
+    assert test -f __build/__default/test1
+    assert test -f __build/__default/test2
+    assert test -f __build/__default/test3
+    assert test -f __build/__default/test10
 
-rm -rf _build
+rm -rf __build

@@ -1,11 +1,11 @@
 . ../common.sh
 
-rm -rf _build
+rm -rf __build
 
 assert $pake Hello
 assert $pake HelloLibrary
 
-assert _build/Hello
+assert __build/__default/Hello
 
-rm -rf _build
+rm -rf __build
 

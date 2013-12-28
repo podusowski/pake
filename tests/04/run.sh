@@ -1,2 +1,2 @@
  echo "Hello world!"
- touch _build/bash
+ touch __build/__default/bash

@@ -8,7 +8,7 @@ import subprocess
 import argparse
 import marshal
 
-BUILD_DIR = os.path.normpath(os.getcwd() + "/_build")
+BUILD_DIR = os.path.normpath(os.getcwd() + "/__build")
 
 """
     utilities
@@ -49,6 +49,9 @@ def execute(command, capture_output = False):
     Ui.debug("command completed: " + command)
     return out
 
+def build_dir(configuration_name):
+    return os.path.normpath(BUILD_DIR + "/" + configuration_name)
+
 class Ui:
     RESET = '\033[0m'
     BOLD = '\033[1m'
@@ -56,6 +59,21 @@ class Ui:
     RED = '\033[31m'
     BOLD_RED = '\033[1;31m'
     BOLD_BLUE = "\033[34;1m"
+
+    log_depth = 0
+
+    @staticmethod
+    def push():
+        Ui.log_depth += 1
+
+    @staticmethod
+    def pop():
+        Ui.log_depth -= 1
+
+    @staticmethod
+    def print_depth_prefix():
+        for i in range(Ui.log_depth):
+            sys.stdout.write("  ")
 
     @staticmethod
     def info(message):
@@ -90,6 +108,7 @@ class Ui:
     def debug(s, env = None):
         if "DEBUG" in os.environ:
             if env == None or env in os.environ:
+                Ui.print_depth_prefix()
                 print(Ui.GRAY + "debug: " + s + Ui.RESET)
 
 """
@@ -98,6 +117,7 @@ class Ui:
 
 class CxxToolchain:
     def __init__(self, configuration, variable_deposit, module_name):
+        self.configuration = configuration
         self.variable_deposit = variable_deposit
         self.module_name = module_name
 
@@ -135,16 +155,19 @@ class CxxToolchain:
         execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
 
     def object_filename(self, target_name, source_filename):
-        return BUILD_DIR + "/build." + target_name + "/" + source_filename + ".o"
+        return self.__build_dir() + "/build." + target_name + "/" + source_filename + ".o"
 
     def static_library_filename(self, target_name):
-        return BUILD_DIR + "/lib" + target_name + ".a"
+        return self.__build_dir() + "/lib" + target_name + ".a"
 
     def application_filename(self, target_name):
-        return BUILD_DIR + "/" + target_name + self.application_suffix
+        return self.__build_dir() + "/" + target_name + self.application_suffix
 
     def cache_directory(self, target_name):
-        return BUILD_DIR + "/build." + target_name + "/"
+        return self.__build_dir() + "/build." + target_name + "/"
+
+    def __build_dir(self):
+        return build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
         return " ".join(self.variable_deposit.eval(self.module_name, tokens))
@@ -173,7 +196,7 @@ class CxxToolchain:
         return ret
 
     def __libs_arguments(self, link_with):
-        ret = "-L " + BUILD_DIR + " "
+        ret = "-L " + self.__build_dir() + " "
         for lib in link_with:
             ret = ret + " -l" + lib
         return ret
@@ -363,14 +386,22 @@ class VariableDeposit:
     def __init__(self):
         self.modules = {}
 
-    def export_configuration(self, configuration):
-        Ui.debug("exporting configuration variables")
+    def export_special_variables(self, configuration):
+        Ui.debug("exporting special variables")
+        Ui.push()
+
         self.add_empty("__configuration", "$__null")
         for (value, name) in configuration.export:
             self.add("__configuration", name.content, value)
 
+        for module in self.modules:
+            self.add(module, "$__build", Token(Token.LITERAL, build_dir(configuration.name)))
+
+        Ui.pop()
+
     def polute_environment(self, current_module):
         Ui.debug("poluting environment")
+        Ui.push()
         for module in self.modules:
             for (name, variable) in self.modules[module].iteritems():
                 evaluated = self.eval(module, variable)
@@ -381,9 +412,12 @@ class VariableDeposit:
                     env_short_name = name[1:]
                     os.environ[env_short_name] = " ".join(evaluated)
                     Ui.debug("  " + env_short_name + ": " + str(evaluated))
+        Ui.pop()
 
     def eval(self, current_module, l):
         Ui.debug("evaluating " + str(l) + " in context of module " + current_module)
+        Ui.push()
+
         ret = []
         for token in l:
             if token.is_a(Token.LITERAL):
@@ -422,7 +456,8 @@ class VariableDeposit:
             else:
                 Ui.parse_error(token)
 
-        Ui.debug("  " + str(ret))
+        Ui.debug(" = " + str(ret))
+        Ui.pop()
         return ret
 
     def __eval_literal(self, current_module, s):
@@ -538,11 +573,6 @@ class Module:
             self.name,
             "$__path",
             Token(Token.LITERAL, os.path.dirname(self.filename)))
-
-        self.variable_deposit.add(
-            self.name,
-            "$__build",
-            Token(Token.LITERAL, BUILD_DIR))
 
         self.variable_deposit.add_empty(
             self.name,
@@ -1060,7 +1090,7 @@ class SourceTree:
             self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
 
         configuration = self.configuration_deposit.get_configuration(configuration_name)
-        self.variable_deposit.export_configuration(configuration)
+        self.variable_deposit.export_special_variables(configuration)
 
     def build(self, target, configuration_name):
         if target in self.built_targets:

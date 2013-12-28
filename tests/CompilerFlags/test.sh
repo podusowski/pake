@@ -1,9 +1,9 @@
 . ../common.sh
 
-rm -rf _build
+rm -rf __build
 
 assert $pake hello
-assert _build/hello
+assert __build/__default/hello
 
-rm -rf _build
+rm -rf __build
 

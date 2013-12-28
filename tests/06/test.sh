@@ -1,5 +1,5 @@
 . ../common.sh
-rm -rf _build
+rm -rf __build
 assert_fail $pake Test
-rm -rf _build
+rm -rf __build
 

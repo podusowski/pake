@@ -1,9 +1,9 @@
 . ../common.sh
 
-rm -rf _build
+rm -rf __build
 
 big_echo "invalid c++ code"
 assert_fail $pake Failed
 
-rm -rf _build
+rm -rf __build
 

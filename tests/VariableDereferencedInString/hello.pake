@@ -1,4 +1,4 @@
-append $output_file "_build/hello"
-append $command "${module.command} ${output_file}"
+append $output_file "__build/__default/hello"
+append $command "mkdir ${__build}; ${module.command} ${output_file}"
 target phony hello run_before($command)
 

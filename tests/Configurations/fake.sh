@@ -1,3 +1,3 @@
 echo fake compiler
-touch _build/fake
+touch __build/fake/fake
 

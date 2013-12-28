@@ -1,15 +1,15 @@
 . ../common.sh
 
-rm -rf _build
-mkdir _build
+rm -rf __build
+mkdir __build
 
 for i in *.pake; do
     name=`echo $i | sed 's/.pake//'`
-    mkdir -p _build/$name
-    cp $i _build/$name/
-    pushd _build/$name/ > /dev/null
+    mkdir -p __build/$name
+    cp $i __build/$name/
+    pushd __build/$name/ > /dev/null
         assert_fail $pake hello
     popd > /dev/null
 done
 
-rm -rf _build
+rm -rf __build

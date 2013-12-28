@@ -1,11 +1,11 @@
 set $build_directory $__build
 
-append $sources "_build/generated.cpp" Test2.cpp
+append $sources "__build/__default/generated.cpp" Test2.cpp
 
 target application Test sources(Test1.cpp $sources) run_before(./generate.sh)
-target phony Test2 artefacts("${__build}/Test2") run_before("touch _build/Test2")
-target phony Test4 artefacts("${__build}/Test2") run_before("touch _build/Test4") prerequisites(Test.pake) # note the difference between touch command and artefact
+target phony Test2 artefacts("${__build}/Test2") run_before("touch __build/__default/Test2")
+target phony Test4 artefacts("${__build}/Test2") run_before("touch __build/__default/Test4") prerequisites(Test.pake) # note the difference between touch command and artefact
 
-set $test3_command "touch _build/Test3"
+set $test3_command "touch __build/__default/Test3"
 target phony Test3 run_before($test3_command)
 

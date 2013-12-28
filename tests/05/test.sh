@@ -1,8 +1,8 @@
 . ../common.sh
 
-rm -rf _build
+rm -rf __build
 
 assert $pake Test
-assert test -f _build/Test
+assert test -f __build/__default/Test
 
-rm -rf _build
+rm -rf __build
