@@ -247,13 +247,8 @@ class Target:
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        evaluated_artefacts = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_parameters.artefacts)
-
-        evaluated_prerequisites = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_parameters.prerequisites)
+        evaluated_artefacts = self.eval(self.common_parameters.artefacts)
+        evaluated_prerequisites = self.eval(self.common_parameters.prerequisites)
 
         should_run = True
         if len(evaluated_prerequisites) > 0 and len(evaluated_artefacts) > 0:
@@ -280,6 +275,11 @@ class Target:
 
         os.chdir(root_dir)
 
+    def eval(self, variable):
+        return self.common_parameters.variable_deposit.eval(
+            self.common_parameters.module_name,
+            variable)
+
 class Phony(Target):
     def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
@@ -298,17 +298,9 @@ class CompileableTarget(Target):
         toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
 
         object_files = []
-        evaluated_sources = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.sources)
-
-        evaluated_include_dirs = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.include_dirs)
-
-        evaluated_compiler_flags = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.compiler_flags)
+        evaluated_sources = self.eval(self.common_cxx_parameters.sources)
+        evaluated_include_dirs = self.eval(self.common_cxx_parameters.include_dirs)
+        evaluated_compiler_flags = self.eval(self.common_cxx_parameters.compiler_flags)
 
         Ui.debug("building objects from " + str(evaluated_sources))
 
