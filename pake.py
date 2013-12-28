@@ -123,7 +123,7 @@ class CxxToolchain:
 
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = "-I."
-        self.archiver_cmd = "ar"
+        self.archiver_cmd = self.__simple_eval(configuration.archiver)
         self.application_suffix = self.__simple_eval(configuration.application_suffix)
 
     def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
@@ -152,6 +152,7 @@ class CxxToolchain:
             Ui.bigstep("up to date", out_filename)
 
     def link_static_library(self, out_filename, in_filenames):
+        Ui.bigstep(self.archiver_cmd, out_filename)
         execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
 
     def object_filename(self, target_name, source_filename):
@@ -371,7 +372,6 @@ class StaticLibrary(CompileableTarget):
         artefact = toolchain.static_library_filename(self.common_parameters.name)
 
         if FsUtils.is_any_newer_than(object_files, artefact):
-            Ui.bigstep("archiving", artefact)
             toolchain.link_static_library(artefact, object_files)
         else:
             Ui.bigstep("up to date", artefact)
@@ -551,6 +551,7 @@ class Configuration:
         self.compiler = [Token(Token.LITERAL, "c++")]
         self.compiler_flags = None
         self.application_suffix = [Token(Token.LITERAL, "")]
+        self.archiver = [Token(Token.LITERAL, "ar")]
         self.export = []
 
 class Module:
@@ -802,6 +803,7 @@ class Module:
             token = it.next()
             if token.is_a(Token.LITERAL):
                 if token.content == "compiler": configuration.compiler = self.__parse_list(it)
+                elif token.content == "archiver": configuration.archiver = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
                 elif token.content == "export": configuration.export = self.__parse_colon_list(it)
