@@ -247,7 +247,7 @@ class CommonTargetParameters:
         self.run_before = []
         self.run_after = []
 
-class CommonCxxParameters:
+class CxxParameters:
     def __init__(self):
         self.sources = []
         self.include_dirs = []
@@ -308,19 +308,19 @@ class Phony(Target):
         Ui.debug("phony build")
 
 class CompileableTarget(Target):
-    def __init__(self, common_parameters, common_cxx_parameters):
+    def __init__(self, common_parameters, cxx_parameters):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
-        self.common_cxx_parameters = common_cxx_parameters
+        self.cxx_parameters = cxx_parameters
 
     def build_objects(self, configuration):
         toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
 
         object_files = []
-        evaluated_sources = self.eval(self.common_cxx_parameters.sources)
-        evaluated_include_dirs = self.eval(self.common_cxx_parameters.include_dirs)
-        evaluated_compiler_flags = self.eval(self.common_cxx_parameters.compiler_flags)
+        evaluated_sources = self.eval(self.cxx_parameters.sources)
+        evaluated_include_dirs = self.eval(self.cxx_parameters.include_dirs)
+        evaluated_compiler_flags = self.eval(self.cxx_parameters.compiler_flags)
 
         Ui.debug("building objects from " + str(evaluated_sources))
 
@@ -332,8 +332,8 @@ class CompileableTarget(Target):
         return object_files
 
 class Application(CompileableTarget):
-    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dirs):
-        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
+    def __init__(self, common_parameters, cxx_parameters, link_with, library_dirs):
+        CompileableTarget.__init__(self, common_parameters, cxx_parameters)
 
         self.link_with = link_with
         self.library_dirs = library_dirs
@@ -358,8 +358,8 @@ class Application(CompileableTarget):
         os.chdir(root_dir)
 
 class StaticLibrary(CompileableTarget):
-    def __init__(self, common_parameters, common_cxx_parameters):
-        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
+    def __init__(self, common_parameters, cxx_parameters):
+        CompileableTarget.__init__(self, common_parameters, cxx_parameters)
 
     def build(self, configuration):
         toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
@@ -681,15 +681,15 @@ class Module:
 
         return False
 
-    def __try_parse_common_cxx_parameters(self, common_cxx_parameters, token, it):
+    def __try_parse_cxx_parameters(self, cxx_parameters, token, it):
         if token.content == "sources":
-            common_cxx_parameters.sources = self.__parse_list(it)
+            cxx_parameters.sources = self.__parse_list(it)
             return True
         elif token.content == "include_dirs":
-            common_cxx_parameters.include_dirs = self.__parse_list(it)
+            cxx_parameters.include_dirs = self.__parse_list(it)
             return True
         elif token.content == "compiler_flags":
-            common_cxx_parameters.compiler_flags = self.__parse_list(it)
+            cxx_parameters.compiler_flags = self.__parse_list(it)
             return True
 
         return False
@@ -704,13 +704,13 @@ class Module:
             self.name,
             target_name)
 
-        common_cxx_parameters = CommonCxxParameters()
+        cxx_parameters = CxxParameters()
 
         while True:
             token = it.next()
             if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
+                elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 elif token.content == "link_with": link_with = self.__parse_list(it)
                 elif token.content == "library_dirs": library_dirs = self.__parse_list(it)
                 else: Ui.parse_error(token)
@@ -719,7 +719,7 @@ class Module:
             else:
                 Ui.parse_error(token)
 
-        target = Application(common_parameters, common_cxx_parameters, link_with, library_dirs)
+        target = Application(common_parameters, cxx_parameters, link_with, library_dirs)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
@@ -729,20 +729,20 @@ class Module:
             self.name,
             target_name)
 
-        common_cxx_parameters = CommonCxxParameters()
+        cxx_parameters = CxxParameters()
 
         while True:
             token = it.next()
             if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
+                elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 else: Ui.parse_error(token)
             elif token.is_a(Token.NEWLINE):
                 break
             else:
                 Ui.parse_error(token)
 
-        target = StaticLibrary(common_parameters, common_cxx_parameters)
+        target = StaticLibrary(common_parameters, cxx_parameters)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
@@ -752,7 +752,7 @@ class Module:
             self.name,
             target_name)
 
-        common_cxx_parameters = CommonCxxParameters()
+        cxx_parameters = CxxParameters()
 
         while True:
             token = it.next()
