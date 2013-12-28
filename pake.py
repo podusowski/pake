@@ -264,10 +264,7 @@ class Target:
         if should_run:
             self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
 
-
-            evaluated_cmds = self.common_parameters.variable_deposit.eval(
-                self.common_parameters.module_name,
-                cmds)
+            evaluated_cmds = self.eval(cmds)
 
             for cmd in evaluated_cmds:
                 Ui.debug("running " + str(cmd))
@@ -326,8 +323,8 @@ class Application(CompileableTarget):
 
         object_files = self.build_objects(configuration)
 
-        evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
-        evaluated_library_dirs = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dirs)
+        evaluated_link_with = self.eval(self.link_with)
+        evaluated_library_dirs = self.eval(self.library_dirs)
 
         toolchain.link_application(
             toolchain.application_filename(self.common_parameters.name),
