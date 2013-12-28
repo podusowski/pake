@@ -526,9 +526,13 @@ class VariableDeposit:
         Ui.debug("  new value: " + str(self.modules[module_name][name]))
 
 class ConfigurationDeposit:
-    def __init__(self):
+    def __init__(self, selected_configuration_name):
+        self.selected_configuration_name = selected_configuration_name
         self.configurations = {}
         self.__create_default_configuration()
+
+    def get_selected_configuration(self):
+        return self.get_configuration(self.selected_configuration_name)
 
     def get_configuration(self, configuration_name):
         return self.configurations[configuration_name]
@@ -1080,7 +1084,7 @@ class Tokenizer:
                 break
 
 class SourceTree:
-    def __init__(self, configuration_deposit, configuration_name):
+    def __init__(self, configuration_deposit):
         self.variable_deposit = VariableDeposit()
         self.configuration_deposit = configuration_deposit
         self.files = []
@@ -1089,17 +1093,17 @@ class SourceTree:
         for filename in self.__find_pake_files():
             self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
 
-        configuration = self.configuration_deposit.get_configuration(configuration_name)
+        configuration = self.configuration_deposit.get_selected_configuration()
         self.variable_deposit.export_special_variables(configuration)
 
-    def build(self, target, configuration_name):
+    def build(self, target):
         if target in self.built_targets:
             Ui.debug(target + " already build, skipping")
             return
 
         self.built_targets.append(target)
 
-        configuration = self.configuration_deposit.get_configuration(configuration_name)
+        configuration = self.configuration_deposit.get_selected_configuration()
 
         Ui.debug("building " + target + " with configuration: " + str(configuration))
         found = False
@@ -1110,7 +1114,7 @@ class SourceTree:
                     evalueated_depends_on = self.variable_deposit.eval(f.name, t.common_parameters.depends_on)
                     for dependency in evalueated_depends_on:
                         Ui.debug(str(t) + " depends on " + dependency)
-                        self.build(dependency, configuration_name)
+                        self.build(dependency)
                     t.before()
                     #Ui.bigstep("building", t.common_parameters.name)
                     t.build(configuration)
@@ -1118,10 +1122,10 @@ class SourceTree:
         if not found:
             Ui.fatal("target " + Ui.BOLD + target + Ui.RESET + " not found in the source tree")
 
-    def build_all(self, configuration_name):
+    def build_all(self):
         for f in self.files:
             for t in t.targets:
-                self.build(t.common_parameters.name, configuration_name)
+                self.build(t.common_parameters.name)
 
     def __find_pake_files(self, path = os.getcwd()):
         for (dirpath, dirnames, filenames) in os.walk(path):
@@ -1140,8 +1144,8 @@ def main():
     args = parser.parse_args()
     Ui.debug(str(args))
 
-    configuration_deposit = ConfigurationDeposit()
-    tree = SourceTree(configuration_deposit, args.configuration)
+    configuration_deposit = ConfigurationDeposit(args.configuration)
+    tree = SourceTree(configuration_deposit)
 
     targets = []
     for module in tree.files:
@@ -1150,14 +1154,16 @@ def main():
 
     if len(args.target) > 0:
         for target in args.target:
-            tree.build(target, args.configuration)
+            tree.build(target)
     elif args.all:
         Ui.bigstep("building all targets", " ".join(targets))
         for target in targets:
-            tree.build(target, args.configuration)
+            tree.build(target)
     else:
         Ui.info(Ui.BOLD + "targets found in this source tree:" + Ui.RESET)
         for target in targets:
             Ui.info(target)
 
-main()
+if __name__ == '__main__':
+    main()
+
