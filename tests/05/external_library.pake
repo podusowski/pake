@@ -1,4 +1,4 @@
-set $artefact _build/external_library/external_library.a
-set $library_dir _build/external_library/
+set $artefact __build/external_library/external_library.a
+set $library_dir __build/external_library/
 target phony external_library run_before(./external_library.sh)
 

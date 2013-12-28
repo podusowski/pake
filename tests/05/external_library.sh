@@ -1,3 +1,3 @@
-mkdir -p _build/external_library
-c++ -c -o _build/external_library/external_library.o external_library.cpp
-ar -rcs _build/external_library/libexternal_library.a _build/external_library/external_library.o
+mkdir -p __build/external_library
+c++ -c -o __build/external_library/external_library.o external_library.cpp
+ar -rcs __build/external_library/libexternal_library.a __build/external_library/external_library.o
