@@ -8,7 +8,7 @@ import subprocess
 import argparse
 import marshal
 
-BUILD_DIR = os.getcwd() + "/_build"
+BUILD_DIR = os.path.normpath(os.getcwd() + "/_build")
 
 """
     utilities
@@ -75,6 +75,18 @@ class Ui:
         sys.exit(1)
 
     @staticmethod
+    def parse_error(token = None, msg = None):
+        if token != None:
+            s = token.location_str()
+            if msg != None:
+                s += ": " + msg
+            else:
+                s += ": unexpected " + str(token)
+            Ui.fatal(s)
+        else:
+            Ui.fatal(msg)
+
+    @staticmethod
     def debug(s, env = None):
         if "DEBUG" in os.environ:
             if env == None or env in os.environ:
@@ -85,17 +97,21 @@ class Ui:
 """
 
 class CxxToolchain:
-    def __init__(self):
-        self.compiler_cmd = "c++"
+    def __init__(self, configuration, variable_deposit, module_name):
+        self.variable_deposit = variable_deposit
+        self.module_name = module_name
+
+        self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = "-I."
         self.archiver_cmd = "ar"
+        self.application_suffix = self.__simple_eval(configuration.application_suffix)
 
     def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
         prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
         prerequisites.append(in_filename)
 
         if FsUtils.is_any_newer_than(prerequisites, out_filename):
-            Ui.step("c++", in_filename)
+            Ui.step(self.compiler_cmd, in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
             execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
 
@@ -125,10 +141,13 @@ class CxxToolchain:
         return BUILD_DIR + "/lib" + target_name + ".a"
 
     def application_filename(self, target_name):
-        return BUILD_DIR + "/" + target_name
+        return BUILD_DIR + "/" + target_name + self.application_suffix
 
     def cache_directory(self, target_name):
         return BUILD_DIR + "/build." + target_name + "/"
+
+    def __simple_eval(self, tokens):
+        return " ".join(self.variable_deposit.eval(self.module_name, tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         cache_file = self.cache_directory(target_name) + in_filename + ".includes"
@@ -190,7 +209,7 @@ class CxxToolchain:
 """
 
 class CommonTargetParameters:
-    def __init__(self, variable_deposit, root_path, module_name, name, toolchain):
+    def __init__(self, variable_deposit, root_path, module_name, name):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(module_name, str)
         assert isinstance(name, str)
@@ -199,7 +218,6 @@ class CommonTargetParameters:
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
-        self.toolchain = toolchain
         self.artefacts = []
         self.prerequisites = []
         self.depends_on = []
@@ -266,22 +284,18 @@ class Phony(Target):
     def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
 
-    def build(self):
+    def build(self, configuration):
         Ui.debug("phony build")
 
-class Application(Target):
-    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dirs):
+class CompileableTarget(Target):
+    def __init__(self, common_parameters, common_cxx_parameters):
         Target.__init__(self, common_parameters)
 
         self.common_parameters = common_parameters
         self.common_cxx_parameters = common_cxx_parameters
-        self.link_with = link_with
-        self.library_dirs = library_dirs
-        self.toolchain = CxxToolchain()
 
-    def build(self):
-        root_dir = os.getcwd()
-        os.chdir(self.common_parameters.root_path)
+    def build_objects(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
 
         object_files = []
         evaluated_sources = self.common_parameters.variable_deposit.eval(
@@ -296,61 +310,57 @@ class Application(Target):
             self.common_parameters.module_name,
             self.common_cxx_parameters.compiler_flags)
 
-        Ui.debug("building application from " + str(evaluated_sources))
+        Ui.debug("building objects from " + str(evaluated_sources))
 
         for source in evaluated_sources:
-            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
+            object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
-            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+            toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+
+        return object_files
+
+class Application(CompileableTarget):
+    def __init__(self, common_parameters, common_cxx_parameters, link_with, library_dirs):
+        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
+
+        self.link_with = link_with
+        self.library_dirs = library_dirs
+
+    def build(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
+
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
+        object_files = self.build_objects(configuration)
 
         evaluated_link_with = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.link_with)
         evaluated_library_dirs = self.common_parameters.variable_deposit.eval(self.common_parameters.module_name, self.library_dirs)
 
-        self.toolchain.link_application(
-            self.toolchain.application_filename(self.common_parameters.name),
+        toolchain.link_application(
+            toolchain.application_filename(self.common_parameters.name),
             object_files,
             evaluated_link_with,
             evaluated_library_dirs)
 
         os.chdir(root_dir)
 
-class StaticLibrary(Target):
+class StaticLibrary(CompileableTarget):
     def __init__(self, common_parameters, common_cxx_parameters):
-        Target.__init__(self, common_parameters)
+        CompileableTarget.__init__(self, common_parameters, common_cxx_parameters)
 
-        self.common_parameters = common_parameters
-        self.common_cxx_parameters = common_cxx_parameters
-        self.toolchain = CxxToolchain()
-
-    def build(self):
+    def build(self, configuration):
+        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        object_files = []
-        evaluated_sources = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.sources)
+        object_files = self.build_objects(configuration)
 
-        evaluated_include_dirs = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.include_dirs)
-
-        evaluated_compiler_flags = self.common_parameters.variable_deposit.eval(
-            self.common_parameters.module_name,
-            self.common_cxx_parameters.compiler_flags)
-
-        Ui.debug("building static_library from " + str(evaluated_sources))
-
-        for source in evaluated_sources:
-            object_file = self.toolchain.object_filename(self.common_parameters.name, source)
-            self.toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
-            object_files.append(object_file)
-
-        artefact = self.toolchain.static_library_filename(self.common_parameters.name)
+        artefact = toolchain.static_library_filename(self.common_parameters.name)
 
         if FsUtils.is_any_newer_than(object_files, artefact):
             Ui.bigstep("archiving", artefact)
-            self.toolchain.link_static_library(artefact, object_files)
+            toolchain.link_static_library(artefact, object_files)
         else:
             Ui.bigstep("up to date", artefact)
 
@@ -360,21 +370,15 @@ class StaticLibrary(Target):
     parser
 """
 
-class ParsingError(Exception):
-    def __init__(self, token, hint = None):
-        self.token = token
-        self.hint = hint
-
-    def __str__(self):
-        (t, c) = self.token
-        msg = "parsing error, unexpected token: " + str(t) + "|" + str(c)
-        if self.hint != None:
-            msg = msg + ", hint: " + self.hint
-        return msg
-
 class VariableDeposit:
     def __init__(self):
         self.modules = {}
+
+    def export_configuration(self, configuration):
+        Ui.debug("exporting configuration variables")
+        self.add_empty("__configuration", "$__null")
+        for (value, name) in configuration.export:
+            self.add("__configuration", name.content, value)
 
     def polute_environment(self, current_module):
         Ui.debug("poluting environment")
@@ -393,12 +397,12 @@ class VariableDeposit:
         Ui.debug("evaluating " + str(l) + " in context of module " + current_module)
         ret = []
         for token in l:
-            if token[0] == Tokenizer.TOKEN_LITERAL:
-                content = self.__eval_literal(current_module, token[1])
-                Ui.debug("  " + token[1] + " = " + content)
+            if token.is_a(Token.LITERAL):
+                content = self.__eval_literal(current_module, token.content)
+                Ui.debug("  " + token.content + " = " + content)
                 ret.append(content)
-            elif token[0] == Tokenizer.TOKEN_VARIABLE:
-                parts = token[1].split(".")
+            elif token.is_a(Token.VARIABLE):
+                parts = token.content.split(".")
 
                 Ui.debug("  dereferencing " + str(parts))
 
@@ -411,25 +415,29 @@ class VariableDeposit:
                     module = parts[0][1:] # lose the $
                     name = "$" + parts[1]
 
+                if not module in self.modules:
+                    Ui.parse_error(msg="no such module: " + module)
+
+                # TODO: make some comment about __configuration variables
                 if not name in self.modules[module]:
-                    Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + current_module)
+                    Ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
                 for value in self.modules[module][name]:
-                    if value[0] == Tokenizer.TOKEN_VARIABLE:
+                    if value.is_a(Token.VARIABLE):
                         re = self.eval(module, [value])
                         for v in re: ret.append(v)
                     else:
-                        content = self.__eval_literal(module, value[1])
+                        content = self.__eval_literal(module, value.content)
                         ret.append(content)
                         Ui.debug("    = " + str(content))
             else:
-                raise ParsingError("")
+                Ui.parse_error(token)
 
         Ui.debug("  " + str(ret))
         return ret
 
     def __eval_literal(self, current_module, s):
-        Ui.debug("evaluating literal: " + s)
+        Ui.debug("    evaluating literal: " + s)
         ret = ""
 
         STATE_READING = 1
@@ -449,11 +457,11 @@ class VariableDeposit:
                 if c == "{":
                     state = STATE_READING_NAME
                 else:
-                    raise ParsingError("expecting { after $")
+                    Ui.parse_error(msg="expecting { after $")
             elif state == STATE_READING_NAME:
                 if c == "}":
-                    Ui.debug("variable: " + variable_name)
-                    evaluated_variable = self.eval(current_module, [(Tokenizer.TOKEN_VARIABLE, variable_name)])
+                    Ui.debug("    variable: " + variable_name)
+                    evaluated_variable = self.eval(current_module, [Token(Token.VARIABLE, variable_name)])
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
                     state = STATE_READING
@@ -463,6 +471,15 @@ class VariableDeposit:
                 variable_name = variable_name + c
 
         return ret
+
+    def add_empty(self, module_name, name):
+        Ui.debug("adding empty variable in module " + module_name + " called " + name)
+
+        if not module_name in self.modules:
+            self.modules[module_name] = {}
+
+        self.modules[module_name][name] = []
+
 
     def add(self, module_name, name, value):
         Ui.debug("adding variable in module " + module_name + " called " + name + " with value of " + str(value))
@@ -484,14 +501,39 @@ class VariableDeposit:
         self.modules[module_name][name].append(value)
         Ui.debug("  new value: " + str(self.modules[module_name][name]))
 
+class ConfigurationDeposit:
+    def __init__(self):
+        self.configurations = {}
+        self.__create_default_configuration()
+
+    def get_configuration(self, configuration_name):
+        return self.configurations[configuration_name]
+
+    def add_configuration(self, configuration):
+        Ui.debug("adding configuration: " + str(configuration))
+        self.configurations[configuration.name] = configuration
+
+    def __create_default_configuration(self):
+        configuration = Configuration()
+        self.add_configuration(configuration)
+
+class Configuration:
+    def __init__(self):
+        self.name = "__default"
+        self.compiler = [Token(Token.LITERAL, "c++")]
+        self.compiler_flags = None
+        self.application_suffix = [Token(Token.LITERAL, "")]
+        self.export = []
+
 class Module:
-    def __init__(self, variable_deposit, filename):
+    def __init__(self, variable_deposit, configuration_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(filename, str)
 
         Ui.debug("parsing " + filename)
 
         self.variable_deposit = variable_deposit
+        self.configuration_deposit = configuration_deposit
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
@@ -506,19 +548,16 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            (Tokenizer.TOKEN_LITERAL, os.getcwd() + "/" + os.path.dirname(self.filename)))
+            Token(Token.LITERAL, os.path.dirname(self.filename)))
 
         self.variable_deposit.add(
             self.name,
             "$__build",
-            (Tokenizer.TOKEN_LITERAL, BUILD_DIR))
+            Token(Token.LITERAL, BUILD_DIR))
 
-    def __parse_error(self, token = None, msg = None):
-        if token != None:
-            (t, c) = token
-            Ui.fatal("syntax error in " + self.filename + ": unexpected token: " + c)
-        else:
-            Ui.fatal(msg)
+        self.variable_deposit.add_empty(
+            self.name,
+            "$__null")
 
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
@@ -531,86 +570,102 @@ class Module:
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_VARIABLE:
-            variable_name = token[1]
+        if token.is_a(Token.VARIABLE):
+            variable_name = token.content
         else:
-            raise ParsingError(token)
+            Ui.parse_error(token)
 
         second_add = False
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL or token[0] == Tokenizer.TOKEN_VARIABLE:
+            if token.is_a(Token.LITERAL) or token.is_a(Token.VARIABLE):
                 if append or second_add:
                     self.variable_deposit.append(self.name, variable_name, token)
                 else:
                     self.variable_deposit.add(self.name, variable_name, token)
                     second_add = True
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError(token)
+                Ui.parse_error(token)
 
+    # (something1 something2)
     def __parse_list(self, it):
         ret = []
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_OPEN_PARENTHESIS:
+        if token.is_a(Token.OPEN_PARENTHESIS):
 
             while True:
                 token = it.next()
-                if token[0] == Tokenizer.TOKEN_LITERAL:
+                if token.is_a(Token.LITERAL):
                     ret.append(token)
-                elif token[0] == Tokenizer.TOKEN_VARIABLE:
+                elif token.is_a(Token.VARIABLE):
                     ret.append(token)
-                elif token[0] == Tokenizer.TOKEN_CLOSE_PARENTHESIS:
+                elif token.is_a(Token.CLOSE_PARENTHESIS):
                     break
                 else:
-                    raise ParsingError(token)
+                    Ui.parse_error(token)
         else:
-            raise ParsingError(token)
+            Ui.parse_error(token)
 
         return ret
 
-    def __parse_literal(self, it):
+    # ($var1:$var2 something4:$var1)
+    def __parse_colon_list(self, it):
+        ret = []
         token = it.next()
+        if token.is_a(Token.OPEN_PARENTHESIS):
 
-        if token[0] in [Tokenizer.TOKEN_LITERAL, Tokenizer.TOKEN_MULTILINE_LITERAL]:
-            return token[1]
-        else:
-            raise ParsingError(token)
-
-    def __parse_argument(self, it):
-        while True:
-            token = it.next()
-            if token[0] == Tokenizer.TOKEN_OPEN_PARENTHESIS:
-                run_after = self.__parse_literal(it)
+            while True:
                 token = it.next()
-                if token[0] == Tokenizer.TOKEN_CLOSE_PARENTHESIS: return run_after
-                else: raise ParsingError(Token)
-            else:
-                raise ParsingError(Token)
+
+                first = None
+                second = None
+
+                if token.is_a(Token.LITERAL) or token.is_a(Token.VARIABLE):
+                    first = token
+                    token = it.next()
+                    if token.is_a(Token.COLON):
+                        token = it.next()
+                        if token.is_a(Token.VARIABLE):
+                            second = token
+                            ret.append((first, second))
+                        else:
+                            Ui.parse_error(token, msg="expected variable")
+                    else:
+                        Ui.parse_error(token, msg="expected colon")
+                elif token.is_a(Token.CLOSE_PARENTHESIS):
+                    break
+                else:
+                    Ui.parse_error(token)
+        else:
+            Ui.parse_error(token)
+
+        Ui.debug("colon list: " + str(ret))
+        return ret
 
     def __try_parse_target_common_parameters(self, common_parameters, token, it):
-        if token[1] == "depends_on":
+        if token.content == "depends_on":
             common_parameters.depends_on = self.__parse_list(it)
             return True
-        elif token[1] == "run_before":
+        elif token.content == "run_before":
             common_parameters.run_before = self.__parse_list(it)
             return True
-        elif token[1] == "run_after":
+        elif token.content == "run_after":
             common_parameters.run_after = self.__parse_list(it)
             return True
 
         return False
 
     def __try_parse_common_cxx_parameters(self, common_cxx_parameters, token, it):
-        if token[1] == "sources":
+        if token.content == "sources":
             common_cxx_parameters.sources = self.__parse_list(it)
             return True
-        elif token[1] == "include_dirs":
+        elif token.content == "include_dirs":
             common_cxx_parameters.include_dirs = self.__parse_list(it)
             return True
-        elif token[1] == "compiler_flags":
+        elif token.content == "compiler_flags":
             common_cxx_parameters.compiler_flags = self.__parse_list(it)
             return True
 
@@ -620,115 +675,134 @@ class Module:
         link_with = []
         library_dirs = []
 
-        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
-        common_parameters.artefact = toolchain.application_filename(target_name)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
-                elif token[1] == "link_with": link_with = self.__parse_list(it)
-                elif token[1] == "library_dirs": library_dirs = self.__parse_list(it)
-                else: self.__parse_error(token)
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+                elif token.content == "link_with": link_with = self.__parse_list(it)
+                elif token.content == "library_dirs": library_dirs = self.__parse_list(it)
+                else: Ui.parse_error(token)
+            elif token.is_a(Token.NEWLINE):
                 break
             else:
-                self.__parse_error(token)
+                Ui.parse_error(token)
 
         target = Application(common_parameters, common_cxx_parameters, link_with, library_dirs)
         self.__add_target(target)
 
     def __parse_static_library(self, target_name, it):
-        toolchain = CxxToolchain()
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
-        common_parameters.artefact = toolchain.static_library_filename(target_name)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_common_cxx_parameters(common_cxx_parameters, token, it): pass
-                else: raise ParsingError()
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+                else: Ui.parse_error(token)
+            elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError()
+                Ui.parse_error(token)
 
         target = StaticLibrary(common_parameters, common_cxx_parameters)
         self.__add_target(target)
 
     def __parse_phony(self, target_name, it):
-        toolchain = CxxToolchain()
-
         common_parameters = CommonTargetParameters(
             self.variable_deposit,
             os.path.dirname(self.filename),
             self.name,
-            target_name,
-            toolchain)
+            target_name)
 
         common_cxx_parameters = CommonCxxParameters()
 
         while True:
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
+            if token.is_a(Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
-                elif token[1] == "artefacts": common_parameters.artefacts = self.__parse_list(it)
-                elif token[1] == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
-                else: raise ParsingError(token)
+                elif token.content == "artefacts": common_parameters.artefacts = self.__parse_list(it)
+                elif token.content == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
+                else: Ui.parse_error(token)
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token.is_a(Token.NEWLINE):
                 break
             else:
-                raise ParsingError(token)
+                Ui.parse_error(token)
 
         target = Phony(common_parameters)
         self.__add_target(target)
 
     def __parse_target(self, it):
         token = it.next()
-        if token[0] == Tokenizer.TOKEN_LITERAL:
-            target_type = token[1]
+        if token.is_a(Token.LITERAL):
+            target_type = token.content
 
             token = it.next()
-            if token[0] == Tokenizer.TOKEN_LITERAL:
-                target_name = token[1]
+            if token.is_a(Token.LITERAL):
+                target_name = token.content
             else:
-                self.__parse_error(token)
+                Ui.parse_error(token)
         else:
-            self.__parse_error(token)
+            Ui.parse_error(token)
 
         if target_type == "application":       self.__parse_application_target(target_name, it)
         elif target_type == "static_library":  self.__parse_static_library(target_name, it)
         elif target_type == "phony":           self.__parse_phony(target_name, it)
-        else: self.__parse_error(msg="unknown target type: " + target_type)
+        else: Ui.parse_error(token, msg="unknown target type: " + target_type)
+
+    def __parse_configuration(self, it):
+        configuration = Configuration()
+
+        # name
+        token = it.next()
+        if token.is_a(Token.LITERAL):
+            configuration.name = token.content
+        else:
+            Ui.parse_error(token)
+
+        while True:
+            token = it.next()
+            if token.is_a(Token.LITERAL):
+                if token.content == "compiler": configuration.compiler = self.__parse_list(it)
+                elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
+                elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
+                elif token.content == "export": configuration.export = self.__parse_colon_list(it)
+                else: Ui.parse_error(token)
+
+            elif token.is_a(Token.NEWLINE):
+                break
+            else:
+                Ui.parse_error(token)
+
+        Ui.debug("configuration parsed:" + str(configuration))
+        self.configuration_deposit.add_configuration(configuration)
 
     def __parse_directive(self, it):
         while True:
             token = it.next()
 
-            if token[0] == Tokenizer.TOKEN_LITERAL:
-                if token[1] == "set" or token[1] == "append": self.__parse_set_or_append(it, token[1] == "append")
-                elif token[1] == "target":                    self.__parse_target(it)
-                else: self.__parse_error(msg="expected directive")
+            if token.is_a(Token.LITERAL):
+                if token.content == "set" or token.content == "append": self.__parse_set_or_append(it, token.content == "append")
+                elif token.content == "target":                    self.__parse_target(it)
+                elif token.content == "configuration":             self.__parse_configuration(it)
+                else: Ui.parse_error(token, msg="expected directive")
 
-            elif token[0] == Tokenizer.TOKEN_NEWLINE:
+            elif token.is_a(Token.NEWLINE):
                 continue
             else:
                 return False
@@ -738,7 +812,7 @@ class Module:
 
         try:
             if not self.__parse_directive(it):
-                raise ParsingError()
+                Ui.parse_error(msg="unknown :(")
         except StopIteration:
             Ui.debug("eof")
 
@@ -769,15 +843,40 @@ class Buffer:
     def eof(self):
         return self.position >= len(self.buf) or self.position < 0
 
-class Tokenizer:
-    TOKEN_OPEN_PARENTHESIS = 1
-    TOKEN_CLOSE_PARENTHESIS = 2
-    TOKEN_LITERAL = 3
-    TOKEN_VARIABLE = 4
-    TOKEN_NEWLINE = 5
-    TOKEN_MULTILINE_LITERAL = 6
+class Token:
+    OPEN_PARENTHESIS = 1
+    CLOSE_PARENTHESIS = 2
+    LITERAL = 3
+    VARIABLE = 4
+    NEWLINE = 5
+    MULTILINE_LITERAL = 6
+    COLON = 7
 
+    def __init__(self, token_type, content, filename = None, line = None, col = None):
+        self.token_type = token_type
+        self.content = content
+
+        self.filename = filename
+        self.line = line
+        self.col = col
+
+    def __str__(self):
+        if self.is_a(Token.LITERAL):
+            return "literal: " + self.content
+        elif self.is_a(Token.VARIABLE):
+            return "variable: " + self.content
+        else:
+            return self.content
+
+    def location_str(self):
+        return str(self.filename) + ":" + str(self.line) + ":" + str(self.col)
+
+    def is_a(self, token_type):
+        return self.token_type == token_type
+
+class Tokenizer:
     def __init__(self, filename):
+        self.filename = filename
         buf = Buffer(filename)
         self.tokens = []
         self.__tokenize(buf)
@@ -792,8 +891,8 @@ class Tokenizer:
         return ""
 
     def __add_token(self, token_type, content):
-        Ui.debug("token: " + str(token_type) + "|" + content, "TOKENIZER")
-        self.tokens.append((token_type, content))
+        token = Token(token_type, content, self.filename)
+        self.tokens.append(token)
 
     def __try_to_read_token(self, buf, what):
         old_position = buf.tell()
@@ -829,7 +928,7 @@ class Tokenizer:
                 char = buf.value()
 
                 if self.__try_to_read_token(buf, '"""'):
-                    self.__add_token(Tokenizer.TOKEN_MULTILINE_LITERAL, data)
+                    self.__add_token(Token.MULTILINE_LITERAL, data)
                     return True
                 else:
                     data = data + char
@@ -851,6 +950,23 @@ class Tokenizer:
             return True
         return False
 
+    def __try_tokenize_slash_newline(self, buf):
+        if buf.eof():
+            return False
+
+        pos = buf.tell()
+
+        char = buf.value()
+        if char == "\\":
+            buf.rewind()
+            char = buf.value()
+            if char == "\n":
+                buf.rewind()
+                return True
+        buf.seek(pos)
+
+        return False
+
     def __try_tokenize_simple_chars(self, buf):
         if buf.eof():
             return False
@@ -858,15 +974,19 @@ class Tokenizer:
         char = buf.value()
 
         if char == '\n':
-            self.__add_token(Tokenizer.TOKEN_NEWLINE, "<new-line>")
+            self.__add_token(Token.NEWLINE, "<new-line>")
             buf.rewind()
             return True
         elif char == '(':
-            self.__add_token(Tokenizer.TOKEN_OPEN_PARENTHESIS, "(")
+            self.__add_token(Token.OPEN_PARENTHESIS, "(")
             buf.rewind()
             return True
         elif char == ')':
-            self.__add_token(Tokenizer.TOKEN_CLOSE_PARENTHESIS, ")")
+            self.__add_token(Token.CLOSE_PARENTHESIS, ")")
+            buf.rewind()
+            return True
+        elif char == ':':
+            self.__add_token(Token.COLON, ":")
             buf.rewind()
             return True
 
@@ -876,8 +996,8 @@ class Tokenizer:
         if buf.eof() or not self.__is_valid_identifier_char(buf.value()):
             return False
 
-        if buf.value() == '$':  token_type = Tokenizer.TOKEN_VARIABLE
-        else:                   token_type = Tokenizer.TOKEN_LITERAL
+        if buf.value() == '$':  token_type = Token.VARIABLE
+        else:                   token_type = Token.LITERAL
 
         data = ''
         while not buf.eof():
@@ -902,7 +1022,7 @@ class Tokenizer:
                     raise Exception("parse error")
 
                 if self.__try_to_read_token(buf, '"'):
-                    self.__add_token(Tokenizer.TOKEN_LITERAL, data)
+                    self.__add_token(Token.LITERAL, data)
                     return True
                 else:
                     char = buf.value()
@@ -926,6 +1046,7 @@ class Tokenizer:
         while not buf.eof():
             ret = (
                 self.__try_tokenize_comment(buf) or
+                self.__try_tokenize_slash_newline(buf) or
                 self.__try_tokenize_simple_chars(buf) or
                 self.__try_tokenize_quoted_literal(buf) or
                 self.__try_tokenize_variable_or_literal(buf) or
@@ -934,27 +1055,34 @@ class Tokenizer:
             )
 
             if not ret:
-                raise Exception("parse error " + str(buf.value()))
+                Ui.parse_error(msg="unexpected character: " + str(buf.value()))
 
             if buf.eof():
                 break
 
 class SourceTree:
-    def __init__(self):
+    def __init__(self, configuration_deposit, configuration_name):
         self.variable_deposit = VariableDeposit()
+        self.configuration_deposit = configuration_deposit
         self.files = []
         self.built_targets = []
-        for filename in self.__find_pake_files():
-            self.files.append(Module(self.variable_deposit, filename))
 
-    def build(self, target):
+        for filename in self.__find_pake_files():
+            self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
+
+        configuration = self.configuration_deposit.get_configuration(configuration_name)
+        self.variable_deposit.export_configuration(configuration)
+
+    def build(self, target, configuration_name):
         if target in self.built_targets:
             Ui.debug(target + " already build, skipping")
             return
 
         self.built_targets.append(target)
 
-        Ui.debug("building " + target)
+        configuration = self.configuration_deposit.get_configuration(configuration_name)
+
+        Ui.debug("building " + target + " with configuration: " + str(configuration))
         found = False
         for f in self.files:
             for t in f.targets:
@@ -963,47 +1091,51 @@ class SourceTree:
                     evalueated_depends_on = self.variable_deposit.eval(f.name, t.common_parameters.depends_on)
                     for dependency in evalueated_depends_on:
                         Ui.debug(str(t) + " depends on " + dependency)
-                        self.build(dependency)
+                        self.build(dependency, configuration_name)
                     t.before()
-                    t.build()
+                    #Ui.bigstep("building", t.common_parameters.name)
+                    t.build(configuration)
                     t.after()
         if not found:
             Ui.fatal("target " + Ui.BOLD + target + Ui.RESET + " not found in the source tree")
 
-    def build_all(self):
+    def build_all(self, configuration_name):
         for f in self.files:
             for t in t.targets:
-                self.build(t.common_parameters.name)
+                self.build(t.common_parameters.name, configuration_name)
 
-    def __find_pake_files(self, path = "."):
+    def __find_pake_files(self, path = os.getcwd()):
         for (dirpath, dirnames, filenames) in os.walk(path):
             for f in filenames:
-                filename = dirpath + "/" + f
-                (base, ext) = os.path.splitext(filename)
-                if ext == ".pake":
-                    yield(filename)
+                if not dirpath.startswith(BUILD_DIR):
+                    filename = dirpath + "/" + f
+                    (base, ext) = os.path.splitext(filename)
+                    if ext == ".pake":
+                        yield(filename)
 
 def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
-    parser.add_argument('target', metavar='target', nargs="*", help='target to be built')
+    parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
+    parser.add_argument('-c', action='store', dest='configuration', default="__default", nargs="?", help='configuration to be used')
+    args = parser.parse_args()
+    Ui.debug(str(args))
 
-    tree = SourceTree()
+    configuration_deposit = ConfigurationDeposit()
+    tree = SourceTree(configuration_deposit, args.configuration)
 
     targets = []
     for module in tree.files:
         for t in module.targets:
             targets.append(t.common_parameters.name)
 
-    args = parser.parse_args()
-
     if len(args.target) > 0:
         for target in args.target:
-            tree.build(target)
+            tree.build(target, args.configuration)
     elif args.all:
         Ui.bigstep("building all targets", " ".join(targets))
         for target in targets:
-            tree.build(target)
+            tree.build(target, args.configuration)
     else:
         Ui.info(Ui.BOLD + "targets found in this source tree:" + Ui.RESET)
         for target in targets:
