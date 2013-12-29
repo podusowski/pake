@@ -577,7 +577,7 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            Token(Token.LITERAL, os.path.dirname(self.filename)))
+            Token.make_literal(os.path.dirname(self.filename)))
 
         self.variable_deposit.add_empty(
             self.name,
