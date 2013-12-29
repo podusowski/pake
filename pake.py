@@ -122,7 +122,8 @@ class CxxToolchain:
         self.module_name = module_name
 
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
-        self.compiler_flags = "-I."
+        self.compiler_flags = self.__simple_eval(configuration.compiler_flags)
+        self.linker_flags = self.__simple_eval(configuration.linker_flags)
         self.archiver_cmd = self.__simple_eval(configuration.archiver)
         self.application_suffix = self.__simple_eval(configuration.application_suffix)
 
@@ -147,7 +148,7 @@ class CxxToolchain:
                 parameters += "-L" + directory + " "
 
             Ui.bigstep("linking", out_filename)
-            execute(self.compiler_cmd + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
+            execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
         else:
             Ui.bigstep("up to date", out_filename)
 
@@ -550,6 +551,7 @@ class Configuration:
         self.name = "__default"
         self.compiler = [Token.make_literal("c++")]
         self.compiler_flags = [Token.make_literal("-I.")]
+        self.linker_flags = [Token.make_literal("-L.")]
         self.application_suffix = [Token.make_literal("")]
         self.archiver = [Token.make_literal("ar")]
         self.export = []
@@ -806,6 +808,7 @@ class Module:
                 elif token.content == "archiver": configuration.archiver = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
+                elif token.content == "linker_flags": configuration.linker_flags = self.__parse_list(it)
                 elif token.content == "export": configuration.export = self.__parse_colon_list(it)
                 else: Ui.parse_error(token)
 
