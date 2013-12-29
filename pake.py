@@ -254,6 +254,61 @@ class CxxParameters:
         self.sources = []
         self.include_dirs = []
         self.compiler_flags = []
+        self.built_targets = []
+
+class TargetDeposit:
+    def __init__(self, variable_deposit, configuration_deposit, source_tree):
+        self.variable_deposit = variable_deposit
+        self.configuration_deposit = configuration_deposit
+        self.source_tree = source_tree
+        self.targets = {}
+        self.built_targets = []
+
+    def __str__(self):
+        s = ''
+        for target in self.targets:
+            s += " * " + target + "\n"
+        return s
+
+    def add_target(self, target):
+        self.targets[target.common_parameters.name] = target
+
+    def build(self, name):
+        configuration = self.configuration_deposit.get_selected_configuration()
+
+        execute("mkdir -p " + build_dir(configuration.name))
+
+        Ui.debug("building " + name + " with configuration " + str(configuration))
+
+        if name in self.built_targets:
+            Ui.debug(target + " already build, skipping")
+            return
+        else:
+            self.built_targets.append(name)
+
+        if not name in self.targets:
+            Ui.fatal("target " + name + " not found")
+
+        target = self.targets[name]
+        evalueated_depends_on = self.variable_deposit.eval(
+            target.common_parameters.module_name,
+            target.common_parameters.depends_on)
+
+        for dependency in evalueated_depends_on:
+            Ui.debug(name + " depends on " + dependency)
+            self.build(dependency)
+
+        toolchain = CxxToolchain(configuration, self.variable_deposit, target.common_parameters.name)
+
+        target.before()
+        target.build(toolchain)
+        target.after()
+
+    def build_all(self):
+        Ui.bigstep("building all targets", " ".join(self.targets))
+
+        for name in self.targets:
+            self.build(name)
 
 class Target:
     def __init__(self, common_parameters):
@@ -316,9 +371,7 @@ class CompileableTarget(Target):
         self.common_parameters = common_parameters
         self.cxx_parameters = cxx_parameters
 
-    def build_objects(self, configuration):
-        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
-
+    def build_objects(self, toolchain):
         object_files = []
         evaluated_sources = self.eval(self.cxx_parameters.sources)
         evaluated_include_dirs = self.eval(self.cxx_parameters.include_dirs)
@@ -340,13 +393,11 @@ class Application(CompileableTarget):
         self.link_with = link_with
         self.library_dirs = library_dirs
 
-    def build(self, configuration):
-        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
-
+    def build(self, toolchain):
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        object_files = self.build_objects(configuration)
+        object_files = self.build_objects(toolchain)
 
         evaluated_link_with = self.eval(self.link_with)
         evaluated_library_dirs = self.eval(self.library_dirs)
@@ -363,12 +414,11 @@ class StaticLibrary(CompileableTarget):
     def __init__(self, common_parameters, cxx_parameters):
         CompileableTarget.__init__(self, common_parameters, cxx_parameters)
 
-    def build(self, configuration):
-        toolchain = CxxToolchain(configuration, self.common_parameters.variable_deposit, self.common_parameters.name)
+    def build(self, toolchain):
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        object_files = self.build_objects(configuration)
+        object_files = self.build_objects(toolchain)
 
         artefact = toolchain.static_library_filename(self.common_parameters.name)
 
@@ -557,7 +607,7 @@ class Configuration:
         self.export = []
 
 class Module:
-    def __init__(self, variable_deposit, configuration_deposit, filename):
+    def __init__(self, variable_deposit, configuration_deposit, target_deposit,filename):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(filename, str)
 
@@ -565,6 +615,7 @@ class Module:
 
         self.variable_deposit = variable_deposit
         self.configuration_deposit = configuration_deposit
+        self.target_deposit = target_deposit
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
@@ -593,6 +644,7 @@ class Module:
     def __add_target(self, target):
         Ui.debug("adding target: " + str(target))
         self.targets.append(target)
+        self.target_deposit.add_target(target)
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
@@ -1093,48 +1145,8 @@ class Tokenizer:
                 break
 
 class SourceTree:
-    def __init__(self, configuration_deposit):
-        self.variable_deposit = VariableDeposit()
-        self.configuration_deposit = configuration_deposit
-        self.files = []
-        self.built_targets = []
-
-        for filename in self.__find_pake_files():
-            self.files.append(Module(self.variable_deposit, self.configuration_deposit, filename))
-
-        configuration = self.configuration_deposit.get_selected_configuration()
-        self.variable_deposit.export_special_variables(configuration)
-
-    def build(self, target):
-        if target in self.built_targets:
-            Ui.debug(target + " already build, skipping")
-            return
-
-        self.built_targets.append(target)
-
-        configuration = self.configuration_deposit.get_selected_configuration()
-
-        Ui.debug("building " + target + " with configuration: " + str(configuration))
-        found = False
-        for f in self.files:
-            for t in f.targets:
-                if t.common_parameters.name == target:
-                    found = True
-                    evalueated_depends_on = self.variable_deposit.eval(f.name, t.common_parameters.depends_on)
-                    for dependency in evalueated_depends_on:
-                        Ui.debug(str(t) + " depends on " + dependency)
-                        self.build(dependency)
-                    t.before()
-                    #Ui.bigstep("building", t.common_parameters.name)
-                    t.build(configuration)
-                    t.after()
-        if not found:
-            Ui.fatal("target " + Ui.BOLD + target + Ui.RESET + " not found in the source tree")
-
-    def build_all(self):
-        for f in self.files:
-            for t in t.targets:
-                self.build(t.common_parameters.name)
+    def __init__(self):
+        self.files = self.__find_pake_files()
 
     def __find_pake_files(self, path = os.getcwd()):
         for (dirpath, dirnames, filenames) in os.walk(path):
@@ -1145,6 +1157,25 @@ class SourceTree:
                     if ext == ".pake":
                         yield(filename)
 
+
+class SourceTreeParser:
+    def __init__(self, source_tree, variable_deposit, configuration_deposit, target_deposit):
+        self.variable_deposit = variable_deposit
+        self.configuration_deposit = configuration_deposit
+        self.target_deposit = target_deposit
+        self.modules = []
+
+        for filename in source_tree.files:
+            self.modules.append(Module(
+                self.variable_deposit,
+                self.configuration_deposit,
+                self.target_deposit,
+                filename))
+
+        configuration = self.configuration_deposit.get_selected_configuration()
+        self.variable_deposit.export_special_variables(configuration)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
     parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
@@ -1153,25 +1184,20 @@ def main():
     args = parser.parse_args()
     Ui.debug(str(args))
 
+    source_tree = SourceTree()
+    variable_deposit = VariableDeposit()
     configuration_deposit = ConfigurationDeposit(args.configuration)
-    tree = SourceTree(configuration_deposit)
-
-    targets = []
-    for module in tree.files:
-        for t in module.targets:
-            targets.append(t.common_parameters.name)
+    target_deposit = TargetDeposit(variable_deposit, configuration_deposit, source_tree)
+    parser = SourceTreeParser(source_tree, variable_deposit, configuration_deposit, target_deposit)
 
     if len(args.target) > 0:
         for target in args.target:
-            tree.build(target)
+            target_deposit.build(target)
     elif args.all:
-        Ui.bigstep("building all targets", " ".join(targets))
-        for target in targets:
-            tree.build(target)
+        target_deposit.build_all()
     else:
         Ui.info(Ui.BOLD + "targets found in this source tree:" + Ui.RESET)
-        for target in targets:
-            Ui.info(target)
+        Ui.info(str(target_deposit))
 
 if __name__ == '__main__':
     main()
