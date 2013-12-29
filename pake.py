@@ -548,10 +548,10 @@ class ConfigurationDeposit:
 class Configuration:
     def __init__(self):
         self.name = "__default"
-        self.compiler = [Token(Token.LITERAL, "c++")]
-        self.compiler_flags = None
-        self.application_suffix = [Token(Token.LITERAL, "")]
-        self.archiver = [Token(Token.LITERAL, "ar")]
+        self.compiler = [Token.make_literal("c++")]
+        self.compiler_flags = [Token.make_literal("-I.")]
+        self.application_suffix = [Token.make_literal("")]
+        self.archiver = [Token.make_literal("ar")]
         self.export = []
 
 class Module:
@@ -876,6 +876,10 @@ class Token:
     NEWLINE = 5
     MULTILINE_LITERAL = 6
     COLON = 7
+
+    @staticmethod
+    def make_literal(content):
+        return Token(Token.LITERAL, content)
 
     def __init__(self, token_type, content, filename = None, line = None, col = None):
         self.token_type = token_type
