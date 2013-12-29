@@ -281,7 +281,7 @@ class TargetDeposit:
         Ui.debug("building " + name + " with configuration " + str(configuration))
 
         if name in self.built_targets:
-            Ui.debug(target + " already build, skipping")
+            Ui.debug(name + " already build, skipping")
             return
         else:
             self.built_targets.append(name)
