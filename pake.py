@@ -109,7 +109,7 @@ class Ui:
         if "DEBUG" in os.environ:
             if env == None or env in os.environ:
                 Ui.print_depth_prefix()
-                print(Ui.GRAY + "debug: " + s + Ui.RESET)
+                print(Ui.GRAY + s + Ui.RESET)
 
 """
     C++ compiler support
@@ -279,6 +279,7 @@ class TargetDeposit:
         execute("mkdir -p " + build_dir(configuration.name))
 
         Ui.debug("building " + name + " with configuration " + str(configuration))
+        Ui.push()
 
         if name in self.built_targets:
             Ui.debug(name + " already build, skipping")
@@ -303,6 +304,8 @@ class TargetDeposit:
         target.before()
         target.build(toolchain)
         target.after()
+
+        Ui.pop()
 
     def build_all(self):
         Ui.bigstep("building all targets", " ".join(self.targets))
@@ -605,6 +608,9 @@ class Configuration:
         self.application_suffix = [Token.make_literal("")]
         self.archiver = [Token.make_literal("ar")]
         self.export = []
+
+    def __str__(self):
+        return self.name
 
 class Module:
     def __init__(self, variable_deposit, configuration_deposit, target_deposit,filename):
@@ -1189,6 +1195,8 @@ def main():
     configuration_deposit = ConfigurationDeposit(args.configuration)
     target_deposit = TargetDeposit(variable_deposit, configuration_deposit, source_tree)
     parser = SourceTreeParser(source_tree, variable_deposit, configuration_deposit, target_deposit)
+
+    Ui.bigstep("configuration", str(configuration_deposit.get_selected_configuration()))
 
     if len(args.target) > 0:
         for target in args.target:
