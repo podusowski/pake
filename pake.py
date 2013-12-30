@@ -116,10 +116,11 @@ class Ui:
 """
 
 class CxxToolchain:
-    def __init__(self, configuration, variable_deposit, module_name):
+    def __init__(self, configuration, variable_deposit, module_name, source_tree):
         self.configuration = configuration
         self.variable_deposit = variable_deposit
         self.module_name = module_name
+        self.source_tree = source_tree
 
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = self.__simple_eval(configuration.compiler_flags)
@@ -299,7 +300,11 @@ class TargetDeposit:
             Ui.debug(name + " depends on " + dependency)
             self.build(dependency)
 
-        toolchain = CxxToolchain(configuration, self.variable_deposit, target.common_parameters.name)
+        toolchain = CxxToolchain(
+            configuration,
+            self.variable_deposit,
+            target.common_parameters.name,
+            self.source_tree)
 
         target.before()
         target.build(toolchain)
@@ -1172,11 +1177,13 @@ class SourceTreeParser:
         self.modules = []
 
         for filename in source_tree.files:
-            self.modules.append(Module(
+            module = Module(
                 self.variable_deposit,
                 self.configuration_deposit,
                 self.target_deposit,
-                filename))
+                filename)
+
+            self.modules.append(module)
 
         configuration = self.configuration_deposit.get_selected_configuration()
         self.variable_deposit.export_special_variables(configuration)
