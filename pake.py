@@ -357,7 +357,7 @@ class Target:
             for artefact in evaluated_artefacts:
                 Ui.debug("  " + artefact)
                 if FsUtils.is_any_newer_than(evaluated_prerequisites, artefact):
-                    Ui.debug("going on because " + str(artefact) + " need to be rebuilt")
+                    Ui.debug("going on because " + str(artefact) + " needs to be rebuilt")
                     should_run = True
                     break
 
