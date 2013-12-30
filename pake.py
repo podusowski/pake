@@ -501,7 +501,7 @@ class VariableDeposit:
             elif token.is_a(Token.VARIABLE):
                 parts = token.content.split(".")
 
-                Ui.debug("  dereferencing " + str(parts))
+                Ui.debug("dereferencing " + str(parts))
 
                 module = ''
                 name = ''
@@ -535,7 +535,8 @@ class VariableDeposit:
         return ret
 
     def __eval_literal(self, current_module, s):
-        Ui.debug("    evaluating literal: " + s)
+        Ui.debug("evaluating literal: " + s)
+        Ui.push()
         ret = ""
 
         STATE_READING = 1
@@ -558,7 +559,7 @@ class VariableDeposit:
                     Ui.parse_error(msg="expecting { after $")
             elif state == STATE_READING_NAME:
                 if c == "}":
-                    Ui.debug("    variable: " + variable_name)
+                    Ui.debug("variable: " + variable_name)
                     evaluated_variable = self.eval(current_module, [Token(Token.VARIABLE, variable_name)])
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
@@ -568,6 +569,7 @@ class VariableDeposit:
             elif state == STATE_READING_NAME:
                 variable_name = variable_name + c
 
+        Ui.pop()
         return ret
 
     def add_empty(self, module_name, name):
@@ -925,8 +927,10 @@ class Module:
         except StopIteration:
             Ui.debug("eof")
 
-class Buffer:
+class FileReader:
     def __init__(self, filename):
+        self.line_number = 1
+
         f = open(filename, "r")
         self.position = 0
         self.buf = f.read()
@@ -941,7 +945,18 @@ class Buffer:
         return str(self.buf[self.position])
 
     def rewind(self, value = 1):
-        self.position = self.position + value
+        if value > 0:
+            for i in xrange(value):
+                self.position += 1
+                if not self.eof() and self.buf[self.position] == '\n':
+                    self.line_number += 1
+        elif value < 0:
+            for i in xrange(-value):
+                self.position -= 1
+                if not self.eof() and self.buf[self.position] == '\n':
+                    self.line_number -= 1
+        else:
+            raise Exception("rewind by 0")
 
     def seek(self, value):
         self.position = value
@@ -990,7 +1005,7 @@ class Token:
 class Tokenizer:
     def __init__(self, filename):
         self.filename = filename
-        buf = Buffer(filename)
+        buf = FileReader(filename)
         self.tokens = []
         self.__tokenize(buf)
         Ui.debug("tokens: " + str(self.tokens))
@@ -998,13 +1013,13 @@ class Tokenizer:
     def __is_valid_identifier_char(self, char):
         return char.isalnum() or char in './$_-=+'
 
-    def __try_add_variable_or_literal(self, token_type, data):
+    def __try_add_variable_or_literal(self, token_type, data, line):
         if len(data) > 0:
-            self.__add_token(token_type, data)
+            self.__add_token(token_type, data, line)
         return ""
 
-    def __add_token(self, token_type, content):
-        token = Token(token_type, content, self.filename)
+    def __add_token(self, token_type, content, line = None):
+        token = Token(token_type, content, self.filename, line)
         self.tokens.append(token)
 
     def __try_to_read_token(self, buf, what):
@@ -1041,7 +1056,7 @@ class Tokenizer:
                 char = buf.value()
 
                 if self.__try_to_read_token(buf, '"""'):
-                    self.__add_token(Token.MULTILINE_LITERAL, data)
+                    self.__add_token(Token.MULTILINE_LITERAL, data, buf.line_number)
                     return True
                 else:
                     data = data + char
@@ -1087,19 +1102,19 @@ class Tokenizer:
         char = buf.value()
 
         if char == '\n':
-            self.__add_token(Token.NEWLINE, "<new-line>")
+            self.__add_token(Token.NEWLINE, "<new-line>", buf.line_number)
             buf.rewind()
             return True
         elif char == '(':
-            self.__add_token(Token.OPEN_PARENTHESIS, "(")
+            self.__add_token(Token.OPEN_PARENTHESIS, "(", buf.line_number)
             buf.rewind()
             return True
         elif char == ')':
-            self.__add_token(Token.CLOSE_PARENTHESIS, ")")
+            self.__add_token(Token.CLOSE_PARENTHESIS, ")", buf.line_number)
             buf.rewind()
             return True
         elif char == ':':
-            self.__add_token(Token.COLON, ":")
+            self.__add_token(Token.COLON, ":", buf.line_number)
             buf.rewind()
             return True
 
@@ -1121,7 +1136,7 @@ class Tokenizer:
             else:
                 break
 
-        self.__try_add_variable_or_literal(token_type, data)
+        self.__try_add_variable_or_literal(token_type, data, buf.line_number)
 
         return True
 
@@ -1135,7 +1150,7 @@ class Tokenizer:
                     raise Exception("parse error")
 
                 if self.__try_to_read_token(buf, '"'):
-                    self.__add_token(Token.LITERAL, data)
+                    self.__add_token(Token.LITERAL, data, buf.line_number)
                     return True
                 else:
                     char = buf.value()
