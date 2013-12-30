@@ -277,7 +277,7 @@ class TargetDeposit:
         self.targets = {}
         self.built_targets = []
 
-    def __str__(self):
+    def __repr__(self):
         s = ''
         for target in self.targets:
             s += " * " + target + "\n"
@@ -334,7 +334,7 @@ class Target:
     def __init__(self, common_parameters):
         self.common_parameters = common_parameters
 
-    def __str__(self):
+    def __repr__(self):
         return self.common_parameters.name
 
     def before(self):
@@ -629,7 +629,7 @@ class Configuration:
         self.archiver = [Token.make_literal("ar")]
         self.export = []
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
 class Module:
@@ -638,6 +638,7 @@ class Module:
         assert isinstance(filename, str)
 
         Ui.debug("parsing " + filename)
+        Ui.push()
 
         self.variable_deposit = variable_deposit
         self.configuration_deposit = configuration_deposit
@@ -661,6 +662,8 @@ class Module:
         self.variable_deposit.add_empty(
             self.name,
             "$__null")
+
+        Ui.pop()
 
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
@@ -970,7 +973,7 @@ class Token:
         self.line = line
         self.col = col
 
-    def __str__(self):
+    def __repr__(self):
         if self.is_a(Token.LITERAL):
             return "literal: " + self.content
         elif self.is_a(Token.VARIABLE):
