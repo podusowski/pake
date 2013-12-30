@@ -1,0 +1,5 @@
+configuration __default compiler("${hello.__path}/c++-wrapper.sh")
+
+target static_library foo sources(foo.cpp)
+target application hello sources(main.cpp) depends_on(foo) link_with(foo)
+
