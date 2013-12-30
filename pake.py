@@ -8,13 +8,18 @@ import subprocess
 import argparse
 import marshal
 
-BUILD_DIR = os.path.normpath(os.getcwd() + "/__build")
 
 """
     utilities
 """
 
 class FsUtils:
+    BUILD_ROOT = os.path.normpath(os.getcwd() + "/__build")
+
+    @staticmethod
+    def build_dir(configuration_name):
+        return os.path.normpath(FsUtils.BUILD_ROOT + "/" + configuration_name)
+
     @staticmethod
     def is_newer_than(prerequisite, target):
         if os.path.exists(target):
@@ -49,8 +54,6 @@ def execute(command, capture_output = False):
     Ui.debug("command completed: " + command)
     return out
 
-def build_dir(configuration_name):
-    return os.path.normpath(BUILD_DIR + "/" + configuration_name)
 
 class Ui:
     RESET = '\033[0m'
@@ -179,7 +182,7 @@ class CxxToolchain:
         return self.__build_dir() + "/build." + target_name + "/"
 
     def __build_dir(self):
-        return build_dir(self.configuration.name)
+        return FsUtils.build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
         return " ".join(self.variable_deposit.eval(self.module_name, tokens))
@@ -289,7 +292,7 @@ class TargetDeposit:
     def build(self, name):
         configuration = self.configuration_deposit.get_selected_configuration()
 
-        execute("mkdir -p " + build_dir(configuration.name))
+        execute("mkdir -p " + FsUtils.build_dir(configuration.name))
 
         Ui.debug("building " + name + " with configuration " + str(configuration))
         Ui.push()
@@ -469,7 +472,7 @@ class VariableDeposit:
             self.add("__configuration", name.content, value)
 
         for module in self.modules:
-            self.add(module, "$__build", Token(Token.LITERAL, build_dir(configuration.name)))
+            self.add(module, "$__build", Token(Token.LITERAL, FsUtils.build_dir(configuration.name)))
 
         Ui.pop()
 
@@ -1196,7 +1199,7 @@ class SourceTree:
         ret = []
         for (dirpath, dirnames, filenames) in os.walk(path):
             for f in filenames:
-                if not dirpath.startswith(BUILD_DIR):
+                if not dirpath.startswith(FsUtils.BUILD_ROOT):
                     filename = dirpath + "/" + f
                     (base, ext) = os.path.splitext(filename)
                     if ext == ".pake":
