@@ -362,7 +362,7 @@ class Target:
                     break
 
         if should_run:
-            self.common_parameters.variable_deposit.polute_environment(self.common_parameters.module_name)
+            self.common_parameters.variable_deposit.pollute_environment(self.common_parameters.module_name)
 
             evaluated_cmds = self.eval(cmds)
 
@@ -473,8 +473,8 @@ class VariableDeposit:
 
         Ui.pop()
 
-    def polute_environment(self, current_module):
-        Ui.debug("poluting environment")
+    def pollute_environment(self, current_module):
+        Ui.debug("polluting environment")
         Ui.push()
         for module in self.modules:
             for (name, variable) in self.modules[module].iteritems():
