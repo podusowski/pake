@@ -73,7 +73,7 @@ class Ui:
     @staticmethod
     def print_depth_prefix():
         for i in range(Ui.log_depth):
-            sys.stdout.write("  ")
+            sys.stdout.write("    ")
 
     @staticmethod
     def info(message):
@@ -129,13 +129,22 @@ class CxxToolchain:
         self.application_suffix = self.__simple_eval(configuration.application_suffix)
 
     def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
+        Ui.debug("building object " + out_filename)
+        Ui.push()
         prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
         prerequisites.append(in_filename)
+
+        Ui.debug("appending prerequisites from pake modules: " + str(self.source_tree.files))
+        for module_filename in self.source_tree.files:
+            prerequisites.append(module_filename)
+
+        Ui.debug("prerequisites: " + str(prerequisites))
 
         if FsUtils.is_any_newer_than(prerequisites, out_filename):
             Ui.step(self.compiler_cmd, in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
             execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
+        Ui.pop()
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
         if FsUtils.is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
@@ -176,6 +185,8 @@ class CxxToolchain:
         return " ".join(self.variable_deposit.eval(self.module_name, tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
+        Ui.debug("getting includes for " + in_filename)
+        Ui.push()
         cache_file = self.cache_directory(target_name) + in_filename + ".includes"
         includes = None
         if os.path.exists(cache_file) and FsUtils.is_newer_than(cache_file, in_filename):
@@ -184,6 +195,7 @@ class CxxToolchain:
             execute("mkdir -p " + os.path.dirname(cache_file))
             includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
             marshal.dump(includes, open(cache_file, "w"))
+        Ui.pop()
         return includes
 
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
@@ -386,11 +398,14 @@ class CompileableTarget(Target):
         evaluated_compiler_flags = self.eval(self.cxx_parameters.compiler_flags)
 
         Ui.debug("building objects from " + str(evaluated_sources))
+        Ui.push()
 
         for source in evaluated_sources:
             object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
             toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+
+        Ui.pop()
 
         return object_files
 
@@ -1160,13 +1175,15 @@ class SourceTree:
         self.files = self.__find_pake_files()
 
     def __find_pake_files(self, path = os.getcwd()):
+        ret = []
         for (dirpath, dirnames, filenames) in os.walk(path):
             for f in filenames:
                 if not dirpath.startswith(BUILD_DIR):
                     filename = dirpath + "/" + f
                     (base, ext) = os.path.splitext(filename)
                     if ext == ".pake":
-                        yield(filename)
+                        ret.append(filename)
+        return ret
 
 
 class SourceTreeParser:
