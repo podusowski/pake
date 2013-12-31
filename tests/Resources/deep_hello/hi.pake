@@ -1,0 +1,2 @@
+target application hi sources("${hello.__path}/hello.cpp") resources(hi.txt)
+

@@ -7,6 +7,7 @@ import stat
 import subprocess
 import argparse
 import marshal
+import shutil
 
 
 """
@@ -170,18 +171,18 @@ class CxxToolchain:
         execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
 
     def object_filename(self, target_name, source_filename):
-        return self.__build_dir() + "/build." + target_name + "/" + source_filename + ".o"
+        return self.build_dir() + "/build." + target_name + "/" + source_filename + ".o"
 
     def static_library_filename(self, target_name):
-        return self.__build_dir() + "/lib" + target_name + ".a"
+        return self.build_dir() + "/lib" + target_name + ".a"
 
     def application_filename(self, target_name):
-        return self.__build_dir() + "/" + target_name + self.application_suffix
+        return self.build_dir() + "/" + target_name + self.application_suffix
 
     def cache_directory(self, target_name):
-        return self.__build_dir() + "/build." + target_name + "/"
+        return self.build_dir() + "/build." + target_name + "/"
 
-    def __build_dir(self):
+    def build_dir(self):
         return FsUtils.build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
@@ -214,7 +215,7 @@ class CxxToolchain:
         return ret
 
     def __libs_arguments(self, link_with):
-        ret = "-L " + self.__build_dir() + " "
+        ret = "-L " + self.build_dir() + " "
         for lib in link_with:
             ret = ret + " -l" + lib
         return ret
@@ -264,6 +265,7 @@ class CommonTargetParameters:
         self.depends_on = []
         self.run_before = []
         self.run_after = []
+        self.resources = []
 
 class CxxParameters:
     def __init__(self):
@@ -324,6 +326,7 @@ class TargetDeposit:
         target.before()
         target.build(toolchain)
         target.after()
+        target.copy_resources(toolchain)
 
         Ui.pop()
 
@@ -345,6 +348,17 @@ class Target:
 
     def after(self):
         self.__try_run(self.common_parameters.run_after)
+
+    def copy_resources(self, toolchain):
+        root_dir = os.getcwd()
+        os.chdir(self.common_parameters.root_path)
+
+        resources = self.eval(self.common_parameters.resources)
+        for resource in resources:
+            Ui.step("copy", resource)
+            shutil.copyfile(resource, toolchain.build_dir() + "/" + resource)
+
+        os.chdir(root_dir)
 
     def __try_run(self, cmds):
         root_dir = os.getcwd()
@@ -766,6 +780,9 @@ class Module:
             return True
         elif token.content == "run_after":
             common_parameters.run_after = self.__parse_list(it)
+            return True
+        elif token.content == "resources":
+            common_parameters.resources = self.__parse_list(it)
             return True
 
         return False
