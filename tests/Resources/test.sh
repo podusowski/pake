@@ -1,5 +1,4 @@
 . ../common.sh
-
 rm -rf __build
 
 assert $pake hello
