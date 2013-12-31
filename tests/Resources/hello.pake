@@ -1,1 +1,1 @@
-target application hello sources(hello.cpp) resources(hello.txt)
+target application hello sources(hello.cpp) resources(hello.txt hello.sh)

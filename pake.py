@@ -356,7 +356,7 @@ class Target:
         resources = self.eval(self.common_parameters.resources)
         for resource in resources:
             Ui.step("copy", resource)
-            shutil.copyfile(resource, toolchain.build_dir() + "/" + resource)
+            shutil.copy(resource, toolchain.build_dir() + "/")
 
         os.chdir(root_dir)
 
