@@ -503,6 +503,7 @@ class VariableDeposit:
         Ui.push()
 
         self.add_empty("__configuration", "$__null")
+        self.add("__configuration", "$__name", Token.make_literal(configuration.name))
         for (value, name) in configuration.export:
             self.add("__configuration", name.content, value)
 

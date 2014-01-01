@@ -11,7 +11,11 @@ configuration __default export($__null:$flags)
 target application hello_default sources(hello.cpp) compiler_flags($__configuration.flags)
 target application hello sources(hello.cpp)
 target application hello_linux sources(hello_linux.cpp) compiler_flags($__configuration.flags)
-target application hello_windows sources(hello_windows.cpp) compiler_flags($__configuration.flags)
+
+target application hello_windows \
+    sources(hello_windows.cpp) \
+    run_before("touch ${__build}/${__configuration.__name}") \
+    compiler_flags($__configuration.flags)
 
 target static_library hello_library sources(hello.cpp)
 

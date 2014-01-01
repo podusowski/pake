@@ -17,6 +17,7 @@ assert test -f __build/linux/hello_linux
 assert $pake -c windows hello_windows
 assert test -f __build/windows/hello_windows.exe
 assert __build/windows/hello_windows.exe
+assert test -f __build/windows/windows # $__configuration.__name
 
 rm -rf __build
 

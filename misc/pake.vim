@@ -10,9 +10,11 @@ syn match pakeSpecialVariable   "__path"
 syn match pakeSpecialVariable   "__build"
 syn match pakeSpecialVariable   "__null"
 syn match pakeSpecialVariable   "__default"
+syn match pakeSpecialVariable   "__configuration"
+syn match pakeSpecialVariable   "__name"
 syn match pakeComment           "#.*$"
 syn match pakeIdentifier1       "$[^ )]*" contains=pakeSpecialVariable
-syn match pakeIdentifier2       "${[^ )]*}" contained
+syn match pakeIdentifier2       "${[^ )]*}" contained contains=pakeSpecialVariable
 syn region pakeString           start='"' end='"' contains=pakeIdentifier2
 
 hi def link pakeDirective        Statement
