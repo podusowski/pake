@@ -82,6 +82,7 @@ class Ui:
     @staticmethod
     def info(message):
         print(message)
+        sys.stdout.flush()
 
     @staticmethod
     def step(tool, parameter):
@@ -89,6 +90,7 @@ class Ui:
             print(Ui.BOLD + tool + Ui.RESET + " " + parameter)
         else:
             print(tool + " " + parameter)
+        sys.stdout.flush()
 
     @staticmethod
     def bigstep(tool, parameter):
@@ -96,6 +98,7 @@ class Ui:
             print(Ui.BOLD_BLUE + tool + Ui.RESET + " " + parameter)
         else:
             print(tool + " " + parameter)
+        sys.stdout.flush()
 
     @staticmethod
     def fatal(message):
@@ -103,6 +106,7 @@ class Ui:
             print(Ui.BOLD_RED + "fatal: " + Ui.RESET + message)
         else:
             print("fatal: " + message)
+        sys.stdout.flush()
         sys.exit(1)
 
     @staticmethod
