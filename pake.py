@@ -85,15 +85,24 @@ class Ui:
 
     @staticmethod
     def step(tool, parameter):
-        print(Ui.BOLD + tool + Ui.RESET + " " + parameter)
+        if sys.stdout.isatty():
+            print(Ui.BOLD + tool + Ui.RESET + " " + parameter)
+        else:
+            print(tool + " " + parameter)
 
     @staticmethod
     def bigstep(tool, parameter):
-        print(Ui.BOLD_BLUE + tool + Ui.RESET + " " + parameter)
+        if sys.stdout.isatty():
+            print(Ui.BOLD_BLUE + tool + Ui.RESET + " " + parameter)
+        else:
+            print(tool + " " + parameter)
 
     @staticmethod
     def fatal(message):
-        print(Ui.BOLD_RED + "fatal: " + Ui.RESET + message)
+        if sys.stdout.isatty():
+            print(Ui.BOLD_RED + "fatal: " + Ui.RESET + message)
+        else:
+            print("fatal: " + message)
         sys.exit(1)
 
     @staticmethod
