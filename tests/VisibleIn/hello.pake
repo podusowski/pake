@@ -1,0 +1,5 @@
+configuration linux-debug compiler_flags(-O0 -g)
+configuration linux-release compiler_flags(-O3)
+
+target application hello sources(hello.cpp)
+target application hello_ut sources(hello_ut.cpp) visible_in(linux-debug)

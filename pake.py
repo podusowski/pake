@@ -266,6 +266,7 @@ class CommonTargetParameters:
         self.run_before = []
         self.run_after = []
         self.resources = []
+        self.visible_in = []
 
 class CxxParameters:
     def __init__(self):
@@ -309,6 +310,10 @@ class TargetDeposit:
             Ui.fatal("target " + name + " not found")
 
         target = self.targets[name]
+
+        if not target.is_visible(configuration):
+            Ui.fatal("target " + name + " is not visible in " + str(configuration))
+
         evalueated_depends_on = self.variable_deposit.eval(
             target.common_parameters.module_name,
             target.common_parameters.depends_on)
@@ -333,8 +338,14 @@ class TargetDeposit:
     def build_all(self):
         Ui.bigstep("building all targets", " ".join(self.targets))
 
+        configuration = self.configuration_deposit.get_selected_configuration()
+
         for name in self.targets:
-            self.build(name)
+            target = self.targets[name]
+            if target.is_visible(configuration):
+                self.build(name)
+            else:
+                Ui.bigstep("skip", name)
 
 class Target:
     def __init__(self, common_parameters):
@@ -359,6 +370,16 @@ class Target:
             shutil.copy(resource, toolchain.build_dir() + "/")
 
         os.chdir(root_dir)
+
+    def is_visible(self, configuration):
+        evaluated_visible_in = self.eval(self.common_parameters.visible_in)
+        if len(evaluated_visible_in) > 0:
+            for visible_in in evaluated_visible_in:
+                if visible_in == configuration.name:
+                    return True
+            return False
+        else:
+            return True
 
     def __try_run(self, cmds):
         root_dir = os.getcwd()
@@ -652,7 +673,7 @@ class Configuration:
         return self.name
 
 class Module:
-    def __init__(self, variable_deposit, configuration_deposit, target_deposit,filename):
+    def __init__(self, variable_deposit, configuration_deposit, target_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
         assert isinstance(filename, str)
 
@@ -783,6 +804,9 @@ class Module:
             return True
         elif token.content == "resources":
             common_parameters.resources = self.__parse_list(it)
+            return True
+        elif token.content == "visible_in":
+            common_parameters.visible_in = self.__parse_list(it)
             return True
 
         return False

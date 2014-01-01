@@ -22,7 +22,7 @@ function assert()
 function assert_fail()
 {
     echo -e "${bg1}Test:${reset} running $@"
-    $@ && error $@
+    $@ && error assert_fail $@
 }
 
 function big_echo()
