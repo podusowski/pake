@@ -50,7 +50,8 @@ def execute(command, capture_output = False):
         else:
             subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError:
-        Ui.fatal("command did not finish successfully: " + command)
+        raise Exception("command did not finish successfully: " + command)
+        #Ui.fatal("command did not finish successfully: " + command)
 
     Ui.debug("command completed: " + command)
     return out
@@ -160,7 +161,10 @@ class CxxToolchain:
         if FsUtils.is_any_newer_than(prerequisites, out_filename):
             Ui.step(self.compiler_cmd, in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
-            execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
+            try:
+                execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
+            except Exception as e:
+                Ui.fatal("cannot build " + target_name + ", reason: " + str(e))
         Ui.pop()
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
