@@ -4,7 +4,7 @@ set $flag_linux "-DLINUX"
 # sadly, when exporting variables, module has to be present
 
 configuration linux compiler_flags("-O0 -g") export($hello.flag_linux:$flags)
-configuration windows compiler(i686-w64-mingw32-c++) application_suffix(.exe) export($hello.flag_windows:$flags) linker_flags(-static)
+configuration windows compiler(i686-w64-mingw32-c++) application_suffix(.exe) linker_flags(-static) compiler_flags(-pedantic)
 configuration fake compiler("./fake.sh") compiler_flags("-O0 -g") archiver("./fake_archiver.sh")
 configuration __default export($__null:$flags)
 
@@ -15,7 +15,7 @@ target application hello_linux sources(hello_linux.cpp) compiler_flags($__config
 target application hello_windows \
     sources(hello_windows.cpp) \
     run_before("touch ${__build}/${__configuration.__name}") \
-    compiler_flags($__configuration.flags)
+    compiler_flags($flag_windows)
 
 target static_library hello_library sources(hello.cpp)
 
