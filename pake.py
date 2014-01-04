@@ -179,7 +179,10 @@ class CxxToolchain:
                 parameters += "-L" + directory + " "
 
             Ui.bigstep("linking", out_filename)
-            execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
+            try:
+                execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
+            except Exception as e:
+                Ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
         else:
             Ui.bigstep("up to date", out_filename)
 
