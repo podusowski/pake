@@ -392,7 +392,7 @@ class Target:
         resources = self.eval(self.common_parameters.resources)
         for resource in resources:
             Ui.step("copy", resource)
-            shutil.copy(resource, toolchain.build_dir() + "/")
+            execute("rsync --update -r '" + resource + "' '" + toolchain.build_dir() + "/'")
 
         os.chdir(root_dir)
 
