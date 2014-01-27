@@ -225,7 +225,12 @@ class CxxToolchain:
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         Ui.debug("scanning includes for " + in_filename)
         ret = []
-        out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
+        out = ""
+        try:
+            out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
+        except:
+            Ui.fatal("can't finish request")
+
         for token in out[2:]:
             if token != "\\":
                 ret.append(token)
