@@ -180,7 +180,7 @@ class CxxToolchain:
 
             Ui.bigstep("linking", out_filename)
             try:
-                execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__libs_arguments(link_with) + " " + parameters)
+                execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
             except Exception as e:
                 Ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
         else:
@@ -239,7 +239,7 @@ class CxxToolchain:
         ret.reverse()
         return ret
 
-    def __libs_arguments(self, link_with):
+    def __prepare_linker_flags(self, link_with):
         ret = "-L " + self.build_dir() + " "
         for lib in link_with:
             ret = ret + " -l" + lib
