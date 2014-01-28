@@ -8,7 +8,7 @@ import subprocess
 import argparse
 import marshal
 import shutil
-
+import threading
 
 """
     utilities
@@ -66,40 +66,53 @@ class Ui:
     BOLD_BLUE = "\033[34;1m"
 
     log_depth = 0
+    lock = threading.Lock()
 
     @staticmethod
     def push():
+        Ui.lock.acquire()
         Ui.log_depth += 1
+        Ui.lock.release()
 
     @staticmethod
     def pop():
+        Ui.lock.acquire()
         Ui.log_depth -= 1
+        Ui.lock.release()
 
     @staticmethod
     def print_depth_prefix():
+        Ui.lock.acquire()
         for i in range(Ui.log_depth):
             sys.stdout.write("    ")
+        Ui.lock.release()
 
     @staticmethod
     def info(message):
+        Ui.lock.acquire()
         print(message)
         sys.stdout.flush()
+        Ui.lock.release()
 
     @staticmethod
     def step(tool, parameter):
+        Ui.lock.acquire()
         if sys.stdout.isatty():
             print(Ui.BOLD + tool + Ui.RESET + " " + parameter)
         else:
             print(tool + " " + parameter)
         sys.stdout.flush()
+        Ui.lock.release()
 
     @staticmethod
     def bigstep(tool, parameter):
+        Ui.lock.acquire()
         if sys.stdout.isatty():
             print(Ui.BOLD_BLUE + tool + Ui.RESET + " " + parameter)
         else:
             print(tool + " " + parameter)
         sys.stdout.flush()
+        Ui.lock.release()
 
     @staticmethod
     def fatal(message):
@@ -124,10 +137,12 @@ class Ui:
 
     @staticmethod
     def debug(s, env = None):
+        Ui.lock.acquire()
         if "DEBUG" in os.environ:
             if env == None or env in os.environ:
                 Ui.print_depth_prefix()
                 print(Ui.GRAY + s + Ui.RESET)
+        Ui.lock.release()
 
 """
     C++ compiler support
@@ -454,6 +469,17 @@ class CompileableTarget(Target):
         self.common_parameters = common_parameters
         self.cxx_parameters = cxx_parameters
 
+    def __build_object(self, limit, toolchain, name, object_file, source, include_dirs, compiler_flags):
+        limit.acquire()
+        toolchain.build_object(
+            name,
+            object_file,
+            source,
+            include_dirs,
+            compiler_flags
+        )
+        limit.release()
+
     def build_objects(self, toolchain):
         object_files = []
         evaluated_sources = self.eval(self.cxx_parameters.sources)
@@ -464,11 +490,30 @@ class CompileableTarget(Target):
         Ui.push()
 
         threads = []
+        limit_semaphore = threading.Semaphore(2)
 
         for source in evaluated_sources:
             object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)
-            toolchain.build_object(self.common_parameters.name, object_file, source, evaluated_include_dirs, evaluated_compiler_flags)
+
+            thread = threading.Thread(
+                target=self.__build_object,
+                args=(
+                    limit_semaphore,
+                    toolchain,
+                    self.common_parameters.name,
+                    object_file,
+                    source,
+                    evaluated_include_dirs,
+                    evaluated_compiler_flags
+                )
+            )
+
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
 
         Ui.pop()
 
