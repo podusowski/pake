@@ -463,6 +463,8 @@ class CompileableTarget(Target):
         Ui.debug("building objects from " + str(evaluated_sources))
         Ui.push()
 
+        threads = []
+
         for source in evaluated_sources:
             object_file = toolchain.object_filename(self.common_parameters.name, source)
             object_files.append(object_file)

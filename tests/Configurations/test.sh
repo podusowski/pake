@@ -13,11 +13,7 @@ assert test -f __build/fake/fake_archive
 
 assert $pake -c linux hello_linux
 assert test -f __build/linux/hello_linux
-
-assert $pake -c windows hello_windows
-assert test -f __build/windows/hello_windows.exe
-assert __build/windows/hello_windows.exe
-assert test -f __build/windows/windows # $__configuration.__name
+assert test -f __build/linux/linux # $__configuration.__name
 
 rm -rf __build
 
