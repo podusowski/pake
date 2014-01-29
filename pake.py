@@ -250,8 +250,6 @@ class CxxToolchain:
             if token != "\\":
                 ret.append(token)
 
-        # in standard c++ code, standard and library includes will be first
-        ret.reverse()
         return ret
 
     def __prepare_linker_flags(self, link_with):

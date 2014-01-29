@@ -14,7 +14,7 @@ done
 
 echo "target application hello sources(main.cpp \$sources)" >> hello.pake
 
-assert $pake hello
+assert $pake -j5 hello
 assert __build/__default/hello
 
 rm -f hello.pake
