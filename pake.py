@@ -176,10 +176,7 @@ class CxxToolchain:
         if FsUtils.is_any_newer_than(prerequisites, out_filename):
             Ui.step(self.compiler_cmd, in_filename)
             execute("mkdir -p " + os.path.dirname(out_filename))
-            try:
-                execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
-            except Exception as e:
-                Ui.fatal("cannot build " + target_name + ", reason: " + str(e))
+            execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
         Ui.pop()
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
@@ -467,16 +464,27 @@ class CompileableTarget(Target):
 
         self.common_parameters = common_parameters
         self.cxx_parameters = cxx_parameters
+        self.error = False
 
     def __build_object(self, limit, toolchain, name, object_file, source, include_dirs, compiler_flags):
         limit.acquire()
-        toolchain.build_object(
-            name,
-            object_file,
-            source,
-            include_dirs,
-            compiler_flags
-        )
+
+        if self.error:
+            limit.release()
+            return
+
+        try:
+            toolchain.build_object(
+                name,
+                object_file,
+                source,
+                include_dirs,
+                compiler_flags
+            )
+        except Exception as e:
+            self.error = True
+            limit.release()
+
         limit.release()
 
     def build_objects(self, toolchain):
@@ -512,8 +520,16 @@ class CompileableTarget(Target):
             thread.daemon = True
             thread.start()
 
-        for thread in threads:
-            thread.join()
+        done = False
+        while not done:
+            done = True
+            for thread in threads:
+                if thread.isAlive():
+                    done = False
+                    thread.join(0.1)
+
+        if self.error:
+            Ui.fatal("cannot build " + self.common_parameters.name)
 
         Ui.pop()
 
