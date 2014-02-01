@@ -82,10 +82,8 @@ class Ui:
 
     @staticmethod
     def print_depth_prefix():
-        Ui.lock.acquire()
         for i in range(Ui.log_depth):
             sys.stdout.write("    ")
-        Ui.lock.release()
 
     @staticmethod
     def info(message):
@@ -465,6 +463,7 @@ class CompileableTarget(Target):
         self.common_parameters = common_parameters
         self.cxx_parameters = cxx_parameters
         self.error = False
+        self.lock = threading.Lock()
 
     def __build_object(self, limit, toolchain, name, object_file, source, include_dirs, compiler_flags):
         limit.acquire()
@@ -482,7 +481,10 @@ class CompileableTarget(Target):
                 compiler_flags
             )
         except Exception as e:
+            self.lock.acquire()
+            Ui.debug("catched " + str(e))
             self.error = True
+            self.lock.release()
             limit.release()
 
         limit.release()
