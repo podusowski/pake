@@ -214,26 +214,6 @@ class VariableDeposit:
         self.modules[module_name][name].append(value)
         ui.debug("  new value: " + str(self.modules[module_name][name]))
 
-class ConfigurationDeposit:
-    def __init__(self, selected_configuration_name):
-        self.selected_configuration_name = selected_configuration_name
-        self.configurations = {}
-        self.__create_default_configuration()
-
-    def get_selected_configuration(self):
-        return self.get_configuration(self.selected_configuration_name)
-
-    def get_configuration(self, configuration_name):
-        return self.configurations[configuration_name]
-
-    def add_configuration(self, configuration):
-        ui.debug("adding configuration: " + str(configuration))
-        self.configurations[configuration.name] = configuration
-
-    def __create_default_configuration(self):
-        configuration = compiler.Configuration()
-        self.add_configuration(configuration)
-
 class Module:
     def __init__(self, jobs, variable_deposit, configuration_deposit, target_deposit, filename):
         assert isinstance(variable_deposit, VariableDeposit)
@@ -586,7 +566,7 @@ def main():
 
     source_tree = SourceTree()
     variable_deposit = VariableDeposit()
-    configuration_deposit = ConfigurationDeposit(args.configuration)
+    configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
     target_deposit = targets.TargetDeposit(variable_deposit, configuration_deposit, source_tree)
     parser = SourceTreeParser(int(args.jobs), source_tree, variable_deposit, configuration_deposit, target_deposit)
 

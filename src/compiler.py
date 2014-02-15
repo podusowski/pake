@@ -22,6 +22,26 @@ def execute(command, capture_output = False):
     ui.debug("command completed: " + command)
     return out
 
+class ConfigurationDeposit:
+    def __init__(self, selected_configuration_name):
+        self.selected_configuration_name = selected_configuration_name
+        self.configurations = {}
+        self.__create_default_configuration()
+
+    def get_selected_configuration(self):
+        return self.get_configuration(self.selected_configuration_name)
+
+    def get_configuration(self, configuration_name):
+        return self.configurations[configuration_name]
+
+    def add_configuration(self, configuration):
+        ui.debug("adding configuration: " + str(configuration))
+        self.configurations[configuration.name] = configuration
+
+    def __create_default_configuration(self):
+        configuration = Configuration()
+        self.add_configuration(configuration)
+
 class Configuration:
     def __init__(self):
         self.name = "__default"
