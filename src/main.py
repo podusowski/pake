@@ -13,6 +13,8 @@ import threading
 # local
 import fsutils
 import ui
+import parsing
+import compiler
 
 """
     utilities
@@ -32,148 +34,9 @@ def execute(command, capture_output = False):
     ui.debug("command completed: " + command)
     return out
 
-
-"""
-    C++ compiler support
-"""
-
-class CxxToolchain:
-    def __init__(self, configuration, variable_deposit, module_name, source_tree):
-        self.configuration = configuration
-        self.variable_deposit = variable_deposit
-        self.module_name = module_name
-        self.source_tree = source_tree
-
-        self.compiler_cmd = self.__simple_eval(configuration.compiler)
-        self.compiler_flags = self.__simple_eval(configuration.compiler_flags)
-        self.linker_flags = self.__simple_eval(configuration.linker_flags)
-        self.archiver_cmd = self.__simple_eval(configuration.archiver)
-        self.application_suffix = self.__simple_eval(configuration.application_suffix)
-
-    def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
-        ui.debug("building object " + out_filename)
-        ui.push()
-        prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
-        prerequisites.append(in_filename)
-
-        ui.debug("appending prerequisites from pake modules: " + str(self.source_tree.files))
-        for module_filename in self.source_tree.files:
-            prerequisites.append(module_filename)
-
-        ui.debug("prerequisites: " + str(prerequisites))
-
-        if fsutils.is_any_newer_than(prerequisites, out_filename):
-            ui.step(self.compiler_cmd, in_filename)
-            execute("mkdir -p " + os.path.dirname(out_filename))
-            execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
-        ui.pop()
-
-    def link_application(self, out_filename, in_filenames, link_with, library_dirs):
-        if fsutils.is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
-            ui.debug("linking application")
-            ui.debug("  files: " + str(in_filenames))
-            ui.debug("  with libs: " + str(link_with))
-            ui.debug("  lib dirs: " + str(library_dirs))
-
-            parameters = ""
-            for directory in library_dirs:
-                parameters += "-L" + directory + " "
-
-            ui.bigstep("linking", out_filename)
-            try:
-                execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
-            except Exception as e:
-                ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
-        else:
-            ui.bigstep("up to date", out_filename)
-
-    def link_static_library(self, out_filename, in_filenames):
-        ui.bigstep(self.archiver_cmd, out_filename)
-        execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
-
-    def object_filename(self, target_name, source_filename):
-        return self.build_dir() + "/build." + target_name + "/" + source_filename + ".o"
-
-    def static_library_filename(self, target_name):
-        return self.build_dir() + "/lib" + target_name + ".a"
-
-    def application_filename(self, target_name):
-        return self.build_dir() + "/" + target_name + self.application_suffix
-
-    def cache_directory(self, target_name):
-        return self.build_dir() + "/build." + target_name + "/"
-
-    def build_dir(self):
-        return fsutils.build_dir(self.configuration.name)
-
-    def __simple_eval(self, tokens):
-        return " ".join(self.variable_deposit.eval(self.module_name, tokens))
-
-    def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
-        ui.debug("getting includes for " + in_filename)
-        ui.push()
-        cache_file = self.cache_directory(target_name) + in_filename + ".includes"
-        includes = None
-        if os.path.exists(cache_file) and fsutils.is_newer_than(cache_file, in_filename):
-            includes = marshal.load(open(cache_file))
-        else:
-            execute("mkdir -p " + os.path.dirname(cache_file))
-            includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
-            marshal.dump(includes, open(cache_file, "w"))
-        ui.pop()
-        return includes
-
-    def __scan_includes(self, in_filename, include_dirs, compiler_flags):
-        ui.debug("scanning includes for " + in_filename)
-        ret = []
-        out = ""
-        try:
-            out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
-        except:
-            ui.fatal("can't finish request")
-
-        for token in out[2:]:
-            if token != "\\":
-                ret.append(token)
-
-        return ret
-
-    def __prepare_linker_flags(self, link_with):
-        ret = "-L " + self.build_dir() + " "
-        for lib in link_with:
-            ret = ret + " -l" + lib
-        return ret
-
-    def __prepare_compiler_flags(self, include_dirs, compiler_flags):
-        ret = self.compiler_flags + " "
-        for flag in compiler_flags:
-            ret += flag + " "
-        ret += self.__prepare_include_dirs_parameters(include_dirs) + " "
-        return ret
-
-    def __prepare_include_dirs_parameters(self, include_dirs):
-        ret = ""
-        for include_dir in include_dirs:
-            ret += "-I" + include_dir + " "
-
-        ui.debug("include parameters: " + ret)
-
-        return ret
-
-    def __are_libs_newer_than_target(self, link_with, target):
-        # check if the library is from our source tree
-        for lib in link_with:
-            filename = self.static_library_filename(lib)
-            if os.path.exists(filename):
-                # TODO: proper appname
-                if fsutils.is_newer_than(filename, target):
-                    return True
-        return False
-
 """
     targets
 """
-
 class CommonTargetParameters:
     def __init__(self, jobs, variable_deposit, root_path, module_name, name):
         assert isinstance(variable_deposit, VariableDeposit)
@@ -247,7 +110,7 @@ class TargetDeposit:
             ui.debug(name + " depends on " + dependency)
             self.build(dependency)
 
-        toolchain = CxxToolchain(
+        toolchain = compiler.CxxToolchain(
             configuration,
             self.variable_deposit,
             target.common_parameters.name,
@@ -484,12 +347,12 @@ class VariableDeposit:
         ui.push()
 
         self.add_empty("__configuration", "$__null")
-        self.add("__configuration", "$__name", Token.make_literal(configuration.name))
+        self.add("__configuration", "$__name", parsing.Token.make_literal(configuration.name))
         for (value, name) in configuration.export:
             self.add("__configuration", name.content, value)
 
         for module in self.modules:
-            self.add(module, "$__build", Token(Token.LITERAL, fsutils.build_dir(configuration.name)))
+            self.add(module, "$__build", parsing.Token(parsing.Token.LITERAL, fsutils.build_dir(configuration.name)))
 
         ui.pop()
 
@@ -514,11 +377,11 @@ class VariableDeposit:
 
         ret = []
         for token in l:
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 content = self.__eval_literal(current_module, token.content)
                 ui.debug("  " + token.content + " = " + content)
                 ret.append(content)
-            elif token.is_a(Token.VARIABLE):
+            elif token.is_a(parsing.Token.VARIABLE):
                 parts = token.content.split(".")
 
                 ui.debug("dereferencing " + str(parts))
@@ -540,7 +403,7 @@ class VariableDeposit:
                     ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
                 for value in self.modules[module][name]:
-                    if value.is_a(Token.VARIABLE):
+                    if value.is_a(parsing.Token.VARIABLE):
                         re = self.eval(module, [value])
                         for v in re: ret.append(v)
                     else:
@@ -580,7 +443,7 @@ class VariableDeposit:
             elif state == STATE_READING_NAME:
                 if c == "}":
                     ui.debug("variable: " + variable_name)
-                    evaluated_variable = self.eval(current_module, [Token(Token.VARIABLE, variable_name)])
+                    evaluated_variable = self.eval(current_module, [parsing.Token(parsing.Token.VARIABLE, variable_name)])
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
                     state = STATE_READING
@@ -638,21 +501,8 @@ class ConfigurationDeposit:
         self.configurations[configuration.name] = configuration
 
     def __create_default_configuration(self):
-        configuration = Configuration()
+        configuration = compiler.Configuration()
         self.add_configuration(configuration)
-
-class Configuration:
-    def __init__(self):
-        self.name = "__default"
-        self.compiler = [Token.make_literal("c++")]
-        self.compiler_flags = [Token.make_literal("-I.")]
-        self.linker_flags = [Token.make_literal("-L.")]
-        self.application_suffix = [Token.make_literal("")]
-        self.archiver = [Token.make_literal("ar")]
-        self.export = []
-
-    def __repr__(self):
-        return self.name
 
 class Module:
     def __init__(self, jobs, variable_deposit, configuration_deposit, target_deposit, filename):
@@ -672,7 +522,7 @@ class Module:
         self.targets = []
         self.base_dir = os.path.dirname(filename)
 
-        tokenizer = Tokenizer(filename)
+        tokenizer = parsing.Tokenizer(filename)
         self.tokens = tokenizer.tokens
 
         self.__parse()
@@ -680,7 +530,7 @@ class Module:
         self.variable_deposit.add(
             self.name,
             "$__path",
-            Token.make_literal(os.path.dirname(self.filename)))
+            parsing.Token.make_literal(os.path.dirname(self.filename)))
 
         self.variable_deposit.add_empty(
             self.name,
@@ -700,7 +550,7 @@ class Module:
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
-        if token.is_a(Token.VARIABLE):
+        if token.is_a(parsing.Token.VARIABLE):
             variable_name = token.content
         else:
             ui.parse_error(token)
@@ -708,14 +558,14 @@ class Module:
         second_add = False
         while True:
             token = it.next()
-            if token.is_a(Token.LITERAL) or token.is_a(Token.VARIABLE):
+            if token.is_a(parsing.Token.LITERAL) or token.is_a(parsing.Token.VARIABLE):
                 if append or second_add:
                     self.variable_deposit.append(self.name, variable_name, token)
                 else:
                     self.variable_deposit.add(self.name, variable_name, token)
                     second_add = True
 
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 break
             else:
                 ui.parse_error(token)
@@ -724,15 +574,15 @@ class Module:
     def __parse_list(self, it):
         ret = []
         token = it.next()
-        if token.is_a(Token.OPEN_PARENTHESIS):
+        if token.is_a(parsing.Token.OPEN_PARENTHESIS):
 
             while True:
                 token = it.next()
-                if token.is_a(Token.LITERAL):
+                if token.is_a(parsing.Token.LITERAL):
                     ret.append(token)
-                elif token.is_a(Token.VARIABLE):
+                elif token.is_a(parsing.Token.VARIABLE):
                     ret.append(token)
-                elif token.is_a(Token.CLOSE_PARENTHESIS):
+                elif token.is_a(parsing.Token.CLOSE_PARENTHESIS):
                     break
                 else:
                     ui.parse_error(token)
@@ -745,7 +595,7 @@ class Module:
     def __parse_colon_list(self, it):
         ret = []
         token = it.next()
-        if token.is_a(Token.OPEN_PARENTHESIS):
+        if token.is_a(parsing.Token.OPEN_PARENTHESIS):
 
             while True:
                 token = it.next()
@@ -753,19 +603,19 @@ class Module:
                 first = None
                 second = None
 
-                if token.is_a(Token.LITERAL) or token.is_a(Token.VARIABLE):
+                if token.is_a(parsing.Token.LITERAL) or token.is_a(parsing.Token.VARIABLE):
                     first = token
                     token = it.next()
-                    if token.is_a(Token.COLON):
+                    if token.is_a(parsing.Token.COLON):
                         token = it.next()
-                        if token.is_a(Token.VARIABLE):
+                        if token.is_a(parsing.Token.VARIABLE):
                             second = token
                             ret.append((first, second))
                         else:
                             ui.parse_error(token, msg="expected variable")
                     else:
                         ui.parse_error(token, msg="expected colon")
-                elif token.is_a(Token.CLOSE_PARENTHESIS):
+                elif token.is_a(parsing.Token.CLOSE_PARENTHESIS):
                     break
                 else:
                     ui.parse_error(token)
@@ -822,13 +672,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 elif token.content == "link_with": link_with = self.__parse_list(it)
                 elif token.content == "library_dirs": library_dirs = self.__parse_list(it)
                 else: ui.parse_error(token)
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 break
             else:
                 ui.parse_error(token)
@@ -848,11 +698,11 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 else: ui.parse_error(token)
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 break
             else:
                 ui.parse_error(token)
@@ -872,13 +722,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif token.content == "artefacts": common_parameters.artefacts = self.__parse_list(it)
                 elif token.content == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
                 else: ui.parse_error(token)
 
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 break
             else:
                 ui.parse_error(token)
@@ -888,11 +738,11 @@ class Module:
 
     def __parse_target(self, it):
         token = it.next()
-        if token.is_a(Token.LITERAL):
+        if token.is_a(parsing.Token.LITERAL):
             target_type = token.content
 
             token = it.next()
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 target_name = token.content
             else:
                 ui.parse_error(token)
@@ -905,18 +755,18 @@ class Module:
         else: ui.parse_error(token, msg="unknown target type: " + target_type)
 
     def __parse_configuration(self, it):
-        configuration = Configuration()
+        configuration = compiler.Configuration()
 
         # name
         token = it.next()
-        if token.is_a(Token.LITERAL):
+        if token.is_a(parsing.Token.LITERAL):
             configuration.name = token.content
         else:
             ui.parse_error(token)
 
         while True:
             token = it.next()
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 if token.content == "compiler": configuration.compiler = self.__parse_list(it)
                 elif token.content == "archiver": configuration.archiver = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
@@ -925,7 +775,7 @@ class Module:
                 elif token.content == "export": configuration.export = self.__parse_colon_list(it)
                 else: ui.parse_error(token)
 
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 break
             else:
                 ui.parse_error(token)
@@ -937,13 +787,13 @@ class Module:
         while True:
             token = it.next()
 
-            if token.is_a(Token.LITERAL):
+            if token.is_a(parsing.Token.LITERAL):
                 if token.content == "set" or token.content == "append": self.__parse_set_or_append(it, token.content == "append")
                 elif token.content == "target":                    self.__parse_target(it)
                 elif token.content == "configuration":             self.__parse_configuration(it)
                 else: ui.parse_error(token, msg="expected directive")
 
-            elif token.is_a(Token.NEWLINE):
+            elif token.is_a(parsing.Token.NEWLINE):
                 continue
             else:
                 return False
@@ -956,267 +806,6 @@ class Module:
                 ui.parse_error(msg="unknown :(")
         except StopIteration:
             ui.debug("eof")
-
-class FileReader:
-    def __init__(self, filename):
-        self.line_number = 1
-
-        f = open(filename, "r")
-        self.position = 0
-        self.buf = f.read()
-        f.close()
-
-    def value(self):
-        if self.eof():
-            ui.debug("Read out of range: " + str(self.position), "TOKENIZER")
-            raise Exception("eof")
-
-        ui.debug("read: " + str(self.buf[self.position]), "TOKENIZER")
-        return str(self.buf[self.position])
-
-    def rewind(self, value = 1):
-        if value > 0:
-            for i in xrange(value):
-                self.position += 1
-                if not self.eof() and self.buf[self.position] == '\n':
-                    self.line_number += 1
-        elif value < 0:
-            for i in xrange(-value):
-                self.position -= 1
-                if not self.eof() and self.buf[self.position] == '\n':
-                    self.line_number -= 1
-        else:
-            raise Exception("rewind by 0")
-
-    def seek(self, value):
-        self.position = value
-
-    def tell(self):
-        return self.position
-
-    def eof(self):
-        return self.position >= len(self.buf) or self.position < 0
-
-class Token:
-    OPEN_PARENTHESIS = 1
-    CLOSE_PARENTHESIS = 2
-    LITERAL = 3
-    VARIABLE = 4
-    NEWLINE = 5
-    MULTILINE_LITERAL = 6
-    COLON = 7
-
-    @staticmethod
-    def make_literal(content):
-        return Token(Token.LITERAL, content)
-
-    def __init__(self, token_type, content, filename = None, line = None, col = None):
-        self.token_type = token_type
-        self.content = content
-
-        self.filename = filename
-        self.line = line
-        self.col = col
-
-    def __repr__(self):
-        if self.is_a(Token.LITERAL):
-            return "literal: " + self.content
-        elif self.is_a(Token.VARIABLE):
-            return "variable: " + self.content
-        else:
-            return self.content
-
-    def location_str(self):
-        return str(self.filename) + ":" + str(self.line) + ":" + str(self.col)
-
-    def is_a(self, token_type):
-        return self.token_type == token_type
-
-class Tokenizer:
-    def __init__(self, filename):
-        self.filename = filename
-        buf = FileReader(filename)
-        self.tokens = []
-        self.__tokenize(buf)
-        ui.debug("tokens: " + str(self.tokens))
-
-    def __is_valid_identifier_char(self, char):
-        return char.isalnum() or char in './$_-=+'
-
-    def __try_add_variable_or_literal(self, token_type, data, line):
-        if len(data) > 0:
-            self.__add_token(token_type, data, line)
-        return ""
-
-    def __add_token(self, token_type, content, line = None):
-        token = Token(token_type, content, self.filename, line)
-        self.tokens.append(token)
-
-    def __try_to_read_token(self, buf, what):
-        old_position = buf.tell()
-        what_position = 0
-
-        while not buf.eof() and what_position < len(what):
-            what_char = what[what_position]
-            char = buf.value()
-
-            if what_char != char:
-                break
-            else:
-                if what_position == len(what) - 1:
-                    buf.rewind()
-                    return True
-
-            buf.rewind()
-            what_position += 1
-
-        buf.seek(old_position)
-        return False
-
-    def __try_tokenize_multiline_literal(self, buf):
-        pos = buf.tell()
-        data = ''
-
-        if self.__try_to_read_token(buf, '"""'):
-            ui.debug("reading multine", "TOKENIZER")
-            while True:
-                if buf.eof():
-                    raise Exception("parse error")
-
-                char = buf.value()
-
-                if self.__try_to_read_token(buf, '"""'):
-                    self.__add_token(Token.MULTILINE_LITERAL, data, buf.line_number)
-                    return True
-                else:
-                    data = data + char
-
-                buf.rewind()
-        else:
-            ui.debug("no multine", "TOKENIZER")
-            buf.seek(pos)
-
-        return False
-
-    def __try_tokenize_comment(self, buf):
-        if buf.eof():
-            return False
-
-        if buf.value() == '#':
-            while not buf.eof() and buf.value() != '\n':
-                buf.rewind()
-            return True
-        return False
-
-    def __try_tokenize_slash_newline(self, buf):
-        if buf.eof():
-            return False
-
-        pos = buf.tell()
-
-        char = buf.value()
-        if char == "\\":
-            buf.rewind()
-            char = buf.value()
-            if char == "\n":
-                buf.rewind()
-                return True
-        buf.seek(pos)
-
-        return False
-
-    def __try_tokenize_simple_chars(self, buf):
-        if buf.eof():
-            return False
-
-        char = buf.value()
-
-        if char == '\n':
-            self.__add_token(Token.NEWLINE, "<new-line>", buf.line_number)
-            buf.rewind()
-            return True
-        elif char == '(':
-            self.__add_token(Token.OPEN_PARENTHESIS, "(", buf.line_number)
-            buf.rewind()
-            return True
-        elif char == ')':
-            self.__add_token(Token.CLOSE_PARENTHESIS, ")", buf.line_number)
-            buf.rewind()
-            return True
-        elif char == ':':
-            self.__add_token(Token.COLON, ":", buf.line_number)
-            buf.rewind()
-            return True
-
-        return False
-
-    def __try_tokenize_variable_or_literal(self, buf):
-        if buf.eof() or not self.__is_valid_identifier_char(buf.value()):
-            return False
-
-        if buf.value() == '$':  token_type = Token.VARIABLE
-        else:                   token_type = Token.LITERAL
-
-        data = ''
-        while not buf.eof():
-            c = buf.value()
-            if self.__is_valid_identifier_char(c):
-                data = data + c
-                buf.rewind()
-            else:
-                break
-
-        self.__try_add_variable_or_literal(token_type, data, buf.line_number)
-
-        return True
-
-    def __try_tokenize_quoted_literal(self, buf):
-        pos = buf.tell()
-        data = ''
-
-        if self.__try_to_read_token(buf, '"'):
-           while True:
-                if buf.eof():
-                    raise Exception("parse error")
-
-                if self.__try_to_read_token(buf, '"'):
-                    self.__add_token(Token.LITERAL, data, buf.line_number)
-                    return True
-                else:
-                    char = buf.value()
-                    data = data + char
-
-                buf.rewind()
-        else:
-            buf.seek(pos)
-
-        return False
-
-    def __try_tokenize_whitespace(self, buf):
-        ret = False
-        while not buf.eof() and buf.value() == ' ':
-            ret = True
-            buf.rewind()
-
-        return ret
-
-    def __tokenize(self, buf):
-        while not buf.eof():
-            ret = (
-                self.__try_tokenize_comment(buf) or
-                self.__try_tokenize_slash_newline(buf) or
-                self.__try_tokenize_simple_chars(buf) or
-                self.__try_tokenize_quoted_literal(buf) or
-                self.__try_tokenize_variable_or_literal(buf) or
-                self.__try_tokenize_whitespace(buf) or
-                self.__try_tokenize_multiline_literal(buf)
-            )
-
-            if not ret:
-                ui.parse_error(msg="unexpected character: " + str(buf.value()))
-
-            if buf.eof():
-                break
 
 class SourceTree:
     def __init__(self):

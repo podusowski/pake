@@ -1,3 +1,5 @@
+./build.sh
+
 . tests/common.sh
 
 for i in tests/*; do
