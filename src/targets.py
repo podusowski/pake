@@ -9,7 +9,7 @@ import shell
 import variable_deposit
 
 class TargetDeposit:
-    def __init__(self, configuration_deposit, _source_tree):
+    def __init__(self, configuration_deposit):
         self.configuration_deposit = configuration_deposit
         self.targets = {}
         self.built_targets = []

@@ -355,7 +355,7 @@ def parse_source_tree(jobs, configuration_deposit, target_deposit):
     configuration = configuration_deposit.get_selected_configuration()
     variable_deposit.export_special_variables(configuration)
 
-def main():
+def parse_command_line():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
     parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
@@ -363,9 +363,13 @@ def main():
     parser.add_argument('-j', action='store', dest='jobs', default="1", nargs="?", help='parallel jobs to be used')
     args = parser.parse_args()
     ui.debug(str(args))
+    return args
+
+def main():
+    args = parse_command_line()
 
     configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
-    target_deposit = targets.TargetDeposit(configuration_deposit, None)
+    target_deposit = targets.TargetDeposit(configuration_deposit)
 
     parse_source_tree(int(args.jobs), configuration_deposit, target_deposit)
 
