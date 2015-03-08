@@ -5,20 +5,7 @@ import subprocess
 import ui
 import fsutils
 import compiler
-
-def execute(command, capture_output = False):
-    out = ''
-    try:
-        if capture_output:
-            out = subprocess.check_output(command, shell=True)
-        else:
-            subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError:
-        raise Exception("command did not finish successfully: " + command)
-        #ui.fatal("command did not finish successfully: " + command)
-
-    ui.debug("command completed: " + command)
-    return out
+import shell
 
 class TargetDeposit:
     def __init__(self, variable_deposit, configuration_deposit, source_tree):
@@ -40,7 +27,7 @@ class TargetDeposit:
     def build(self, name):
         configuration = self.configuration_deposit.get_selected_configuration()
 
-        execute("mkdir -p " + fsutils.build_dir(configuration.name))
+        shell.execute("mkdir -p " + fsutils.build_dir(configuration.name))
 
         ui.debug("building " + name + " with configuration " + str(configuration))
         ui.push()
@@ -112,7 +99,7 @@ class Target:
         resources = self.eval(self.common_parameters.resources)
         for resource in resources:
             ui.step("copy", resource)
-            execute("rsync --update -r '" + resource + "' '" + toolchain.build_dir() + "/'")
+            shell.execute("rsync --update -r '" + resource + "' '" + toolchain.build_dir() + "/'")
 
         os.chdir(root_dir)
 
@@ -151,7 +138,7 @@ class Target:
 
             for cmd in evaluated_cmds:
                 ui.debug("running " + str(cmd))
-                execute(cmd)
+                shell.execute(cmd)
 
         os.chdir(root_dir)
 

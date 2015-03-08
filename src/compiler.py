@@ -4,23 +4,10 @@ import marshal
 
 import ui
 import fsutils
+import shell
 
 # TODO: try to drop it
 import parsing
-
-def execute(command, capture_output = False):
-    out = ''
-    try:
-        if capture_output:
-            out = subprocess.check_output(command, shell=True)
-        else:
-            subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError:
-        raise Exception("command did not finish successfully: " + command)
-        #ui.fatal("command did not finish successfully: " + command)
-
-    ui.debug("command completed: " + command)
-    return out
 
 class ConfigurationDeposit:
     def __init__(self, selected_configuration_name):
@@ -82,8 +69,8 @@ class CxxToolchain:
 
         if fsutils.is_any_newer_than(prerequisites, out_filename):
             ui.step(self.compiler_cmd, in_filename)
-            execute("mkdir -p " + os.path.dirname(out_filename))
-            execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
+            shell.execute("mkdir -p " + os.path.dirname(out_filename))
+            shell.execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
         ui.pop()
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
@@ -99,7 +86,7 @@ class CxxToolchain:
 
             ui.bigstep("linking", out_filename)
             try:
-                execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
+                shell.execute(self.compiler_cmd + " " + self.linker_flags + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
             except Exception as e:
                 ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
         else:
@@ -107,7 +94,7 @@ class CxxToolchain:
 
     def link_static_library(self, out_filename, in_filenames):
         ui.bigstep(self.archiver_cmd, out_filename)
-        execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
+        shell.execute(self.archiver_cmd + " -rcs " + out_filename + " " + " ".join(in_filenames))
 
     def object_filename(self, target_name, source_filename):
         return self.build_dir() + "/build." + target_name + "/" + source_filename + ".o"
@@ -135,7 +122,7 @@ class CxxToolchain:
         if os.path.exists(cache_file) and fsutils.is_newer_than(cache_file, in_filename):
             includes = marshal.load(open(cache_file))
         else:
-            execute("mkdir -p " + os.path.dirname(cache_file))
+            shell.execute("mkdir -p " + os.path.dirname(cache_file))
             includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
             marshal.dump(includes, open(cache_file, "w"))
         ui.pop()
@@ -146,7 +133,7 @@ class CxxToolchain:
         ret = []
         out = ""
         try:
-            out = execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
+            out = shell.execute(self.compiler_cmd + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
         except:
             ui.fatal("can't finish request")
 
