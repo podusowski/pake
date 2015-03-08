@@ -1,4 +1,4 @@
-./build.sh
+./make_pake.sh
 
 . tests/common.sh
 
