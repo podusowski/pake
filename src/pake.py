@@ -16,7 +16,7 @@ import ui
 import lexer
 import compiler
 import targets
-import variable_deposit
+import variables
 import configurations
 
 """
@@ -62,12 +62,12 @@ class Module:
 
         self.__parse()
 
-        variable_deposit.add(
+        variables.add(
             self.name,
             "$__path",
             lexer.Token.make_literal(os.path.dirname(self.filename)))
 
-        variable_deposit.add_empty(
+        variables.add_empty(
             self.name,
             "$__null")
 
@@ -94,9 +94,9 @@ class Module:
             token = it.next()
             if token.is_a(lexer.Token.LITERAL) or token.is_a(lexer.Token.VARIABLE):
                 if append or second_add:
-                    variable_deposit.append(self.name, variable_name, token)
+                    variables.append(self.name, variable_name, token)
                 else:
-                    variable_deposit.add(self.name, variable_name, token)
+                    variables.add(self.name, variable_name, token)
                     second_add = True
 
             elif token.is_a(lexer.Token.NEWLINE):
@@ -340,7 +340,7 @@ def parse_source_tree(target_deposit):
         module = Module(target_deposit, filename)
 
     configuration = configurations.get_selected_configuration()
-    variable_deposit.export_special_variables(configuration)
+    variables.export_special_variables(configuration)
 
 def main():
     import command_line

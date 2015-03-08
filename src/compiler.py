@@ -5,13 +5,13 @@ import marshal
 import ui
 import fsutils
 import shell
-import variable_deposit
+import variables
 
 # TODO: try to drop it
 import lexer
 
 class CxxToolchain:
-    def __init__(self, configuration, variable_deposit, module_name, _source_tree):
+    def __init__(self, configuration, variables, module_name, _source_tree):
         self.configuration = configuration
         self.module_name = module_name
 
@@ -78,7 +78,7 @@ class CxxToolchain:
         return fsutils.build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
-        return " ".join(variable_deposit.eval(self.module_name, tokens))
+        return " ".join(variables.eval(self.module_name, tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         ui.debug("getting includes for " + in_filename)

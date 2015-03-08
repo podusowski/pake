@@ -6,7 +6,7 @@ import ui
 import fsutils
 import compiler
 import shell
-import variable_deposit
+import variables
 import configurations
 
 class TargetDeposit:
@@ -45,7 +45,7 @@ class TargetDeposit:
             if not target.is_visible(configuration):
                 ui.fatal("target " + name + " is not visible in " + str(configuration))
 
-            evalueated_depends_on = variable_deposit.eval(
+            evalueated_depends_on = variables.eval(
                 target.common_parameters.module_name,
                 target.common_parameters.depends_on)
 
@@ -129,7 +129,7 @@ class Target:
                     break
 
         if should_run:
-            variable_deposit.pollute_environment(self.common_parameters.module_name)
+            variables.pollute_environment(self.common_parameters.module_name)
 
             evaluated_cmds = self.eval(cmds)
 
@@ -140,7 +140,7 @@ class Target:
         os.chdir(root_dir)
 
     def eval(self, variable):
-        return variable_deposit.eval(
+        return variables.eval(
             self.common_parameters.module_name,
             variable)
 
