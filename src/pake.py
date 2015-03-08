@@ -56,7 +56,6 @@ class Module:
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
-        self.targets = []
         self.base_dir = os.path.dirname(filename)
 
         self.tokens = lexer.parse(filename)
@@ -81,7 +80,6 @@ class Module:
 
     def __add_target(self, target):
         ui.debug("adding target: " + str(target))
-        self.targets.append(target)
         self.target_deposit.add_target(target)
 
     def __parse_set_or_append(self, it, append):
