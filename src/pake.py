@@ -22,11 +22,10 @@ import variable_deposit
     targets
 """
 class CommonTargetParameters:
-    def __init__(self, jobs, _variable_deposit, root_path, module_name, name):
+    def __init__(self, root_path, module_name, name):
         assert isinstance(module_name, str)
         assert isinstance(name, str)
 
-        self.jobs = jobs
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
@@ -46,13 +45,12 @@ class CxxParameters:
         self.built_targets = []
 
 class Module:
-    def __init__(self, jobs, configuration_deposit, target_deposit, filename):
+    def __init__(self, configuration_deposit, target_deposit, filename):
         assert isinstance(filename, str)
 
         ui.debug("lexer " + filename)
         ui.push()
 
-        self.jobs = jobs
         self.configuration_deposit = configuration_deposit
         self.target_deposit = target_deposit
         self.filename = filename
@@ -200,8 +198,6 @@ class Module:
         library_dirs = []
 
         common_parameters = CommonTargetParameters(
-            self.jobs,
-            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -226,8 +222,6 @@ class Module:
 
     def __parse_static_library(self, target_name, it):
         common_parameters = CommonTargetParameters(
-            self.jobs,
-            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -250,8 +244,6 @@ class Module:
 
     def __parse_phony(self, target_name, it):
         common_parameters = CommonTargetParameters(
-            self.jobs,
-            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -345,37 +337,27 @@ class Module:
         except StopIteration:
             ui.debug("eof")
 
-def parse_source_tree(jobs, configuration_deposit, target_deposit):
+def parse_source_tree(configuration_deposit, target_deposit):
     for filename in fsutils.pake_files:
-        module = Module(jobs, configuration_deposit, target_deposit, filename)
+        module = Module(configuration_deposit, target_deposit, filename)
 
     configuration = configuration_deposit.get_selected_configuration()
     variable_deposit.export_special_variables(configuration)
 
-def parse_command_line():
-    parser = argparse.ArgumentParser(description='Painless buildsystem.')
-    parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')
-    parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
-    parser.add_argument('-c', action='store', dest='configuration', default="__default", nargs="?", help='configuration to be used')
-    parser.add_argument('-j', action='store', dest='jobs', default="1", nargs="?", help='parallel jobs to be used')
-    args = parser.parse_args()
-    ui.debug(str(args))
-    return args
-
 def main():
-    args = parse_command_line()
+    import command_line
 
-    configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
+    configuration_deposit = compiler.ConfigurationDeposit(command_line.args.configuration)
     target_deposit = targets.TargetDeposit(configuration_deposit)
 
-    parse_source_tree(int(args.jobs), configuration_deposit, target_deposit)
+    parse_source_tree(configuration_deposit, target_deposit)
 
     ui.bigstep("configuration", str(configuration_deposit.get_selected_configuration()))
 
-    if len(args.target) > 0:
-        for target in args.target:
+    if len(command_line.args.target) > 0:
+        for target in command_line.args.target:
             target_deposit.build(target)
-    elif args.all:
+    elif command_line.args.all:
         target_deposit.build_all()
     else:
         ui.info(ui.BOLD + "targets found in this source tree:" + ui.RESET)

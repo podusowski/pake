@@ -186,7 +186,9 @@ class CompileableTarget(Target):
         ui.push()
 
         threads = []
-        limit_semaphore = threading.Semaphore(self.common_parameters.jobs)
+
+        import command_line
+        limit_semaphore = threading.Semaphore(int(command_line.args.jobs))
 
         for source in evaluated_sources:
             object_file = toolchain.object_filename(self.common_parameters.name, source)
