@@ -510,27 +510,19 @@ class SourceTree:
                         ret.append(filename)
         return ret
 
+def find_pake_files():
+    tree = SourceTree()
+    return tree.files
 
-class SourceTreeParser:
-    def __init__(self, jobs, source_tree, _variable_deposit, configuration_deposit, target_deposit):
-        self.jobs = jobs
-        self.configuration_deposit = configuration_deposit
-        self.target_deposit = target_deposit
-        self.modules = []
+modules = [] #TODO: do we need to store it?
 
-        for filename in source_tree.files:
-            module = Module(
-                self.jobs,
-                None,
-                self.configuration_deposit,
-                self.target_deposit,
-                filename)
+def parse_source_tree(jobs, configuration_deposit, target_deposit):
+    for filename in find_pake_files():
+        module = Module(jobs, None, configuration_deposit, target_deposit, filename)
+        modules.append(module)
 
-            self.modules.append(module)
-
-        configuration = self.configuration_deposit.get_selected_configuration()
-        variable_deposit.export_special_variables(configuration)
-
+    configuration = configuration_deposit.get_selected_configuration()
+    variable_deposit.export_special_variables(configuration)
 
 def main():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
@@ -543,8 +535,9 @@ def main():
 
     source_tree = SourceTree()
     configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
-    target_deposit = targets.TargetDeposit(None, configuration_deposit, source_tree)
-    parser = SourceTreeParser(int(args.jobs), source_tree, None, configuration_deposit, target_deposit)
+    target_deposit = targets.TargetDeposit(configuration_deposit, source_tree)
+
+    parse_source_tree(int(args.jobs), configuration_deposit, target_deposit)
 
     ui.bigstep("configuration", str(configuration_deposit.get_selected_configuration()))
 
