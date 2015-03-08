@@ -83,7 +83,7 @@ class Module:
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
-        if token.is_a(lexer.Token.VARIABLE):
+        if token == lexer.Token.VARIABLE:
             variable_name = token.content
         else:
             ui.parse_error(token)
@@ -91,14 +91,14 @@ class Module:
         second_add = False
         while True:
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL) or token.is_a(lexer.Token.VARIABLE):
+            if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
                 if append or second_add:
                     variables.append(self.name, variable_name, token)
                 else:
                     variables.add(self.name, variable_name, token)
                     second_add = True
 
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 break
             else:
                 ui.parse_error(token)
@@ -107,15 +107,15 @@ class Module:
     def __parse_list(self, it):
         ret = []
         token = it.next()
-        if token.is_a(lexer.Token.OPEN_PARENTHESIS):
+        if token == lexer.Token.OPEN_PARENTHESIS:
 
             while True:
                 token = it.next()
-                if token.is_a(lexer.Token.LITERAL):
+                if token == lexer.Token.LITERAL:
                     ret.append(token)
-                elif token.is_a(lexer.Token.VARIABLE):
+                elif token == lexer.Token.VARIABLE:
                     ret.append(token)
-                elif token.is_a(lexer.Token.CLOSE_PARENTHESIS):
+                elif token == lexer.Token.CLOSE_PARENTHESIS:
                     break
                 else:
                     ui.parse_error(token)
@@ -128,7 +128,7 @@ class Module:
     def __parse_colon_list(self, it):
         ret = []
         token = it.next()
-        if token.is_a(lexer.Token.OPEN_PARENTHESIS):
+        if token == lexer.Token.OPEN_PARENTHESIS:
 
             while True:
                 token = it.next()
@@ -136,19 +136,19 @@ class Module:
                 first = None
                 second = None
 
-                if token.is_a(lexer.Token.LITERAL) or token.is_a(lexer.Token.VARIABLE):
+                if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
                     first = token
                     token = it.next()
-                    if token.is_a(lexer.Token.COLON):
+                    if token == lexer.Token.COLON:
                         token = it.next()
-                        if token.is_a(lexer.Token.VARIABLE):
+                        if token == lexer.Token.VARIABLE:
                             second = token
                             ret.append((first, second))
                         else:
                             ui.parse_error(token, msg="expected variable")
                     else:
                         ui.parse_error(token, msg="expected colon")
-                elif token.is_a(lexer.Token.CLOSE_PARENTHESIS):
+                elif token == lexer.Token.CLOSE_PARENTHESIS:
                     break
                 else:
                     ui.parse_error(token)
@@ -203,13 +203,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 elif token.content == "link_with": link_with = self.__parse_list(it)
                 elif token.content == "library_dirs": library_dirs = self.__parse_list(it)
                 else: ui.parse_error(token)
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 break
             else:
                 ui.parse_error(token)
@@ -227,11 +227,11 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif self.__try_parse_cxx_parameters(cxx_parameters, token, it): pass
                 else: ui.parse_error(token)
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 break
             else:
                 ui.parse_error(token)
@@ -249,13 +249,13 @@ class Module:
 
         while True:
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 if self.__try_parse_target_common_parameters(common_parameters, token, it): pass
                 elif token.content == "artefacts": common_parameters.artefacts = self.__parse_list(it)
                 elif token.content == "prerequisites": common_parameters.prerequisites = self.__parse_list(it)
                 else: ui.parse_error(token)
 
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 break
             else:
                 ui.parse_error(token)
@@ -265,11 +265,11 @@ class Module:
 
     def __parse_target(self, it):
         token = it.next()
-        if token.is_a(lexer.Token.LITERAL):
+        if token == lexer.Token.LITERAL:
             target_type = token.content
 
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 target_name = token.content
             else:
                 ui.parse_error(token)
@@ -286,14 +286,14 @@ class Module:
 
         # name
         token = it.next()
-        if token.is_a(lexer.Token.LITERAL):
+        if token == lexer.Token.LITERAL:
             configuration.name = token.content
         else:
             ui.parse_error(token)
 
         while True:
             token = it.next()
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 if token.content == "compiler": configuration.compiler = self.__parse_list(it)
                 elif token.content == "archiver": configuration.archiver = self.__parse_list(it)
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
@@ -302,7 +302,7 @@ class Module:
                 elif token.content == "export": configuration.export = self.__parse_colon_list(it)
                 else: ui.parse_error(token)
 
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 break
             else:
                 ui.parse_error(token)
@@ -314,13 +314,13 @@ class Module:
         while True:
             token = it.next()
 
-            if token.is_a(lexer.Token.LITERAL):
+            if token == lexer.Token.LITERAL:
                 if token.content == "set" or token.content == "append": self.__parse_set_or_append(it, token.content == "append")
                 elif token.content == "target":                    self.__parse_target(it)
                 elif token.content == "configuration":             self.__parse_configuration(it)
                 else: ui.parse_error(token, msg="expected directive")
 
-            elif token.is_a(lexer.Token.NEWLINE):
+            elif token == lexer.Token.NEWLINE:
                 continue
             else:
                 return False
