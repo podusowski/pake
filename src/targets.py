@@ -46,7 +46,7 @@ def build(name):
             build(dependency)
 
         toolchain = compiler.CxxToolchain(
-            configuration,
+            None,
             None,
             target.common_parameters.name,
             None)

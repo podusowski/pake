@@ -6,15 +6,17 @@ import ui
 import fsutils
 import shell
 import variables
+import configurations
 
 # TODO: try to drop it
 import lexer
 
 class CxxToolchain:
-    def __init__(self, configuration, variables, module_name, _source_tree):
-        self.configuration = configuration
+    def __init__(self, _configuration, variables, module_name, _source_tree):
+        self.configuration = configurations.get_selected_configuration()
         self.module_name = module_name
 
+        configuration = self.configuration
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = self.__simple_eval(configuration.compiler_flags)
         self.linker_flags = self.__simple_eval(configuration.linker_flags)
