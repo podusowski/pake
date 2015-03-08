@@ -75,6 +75,10 @@ class Token:
     def is_a(self, token_type):
         return self.token_type == token_type
 
+def parse(filename):
+    tokenizer = Tokenizer()
+    return tokenizer.parse(filename)
+
 class Tokenizer:
     def __init__(self, filename):
         self.filename = filename

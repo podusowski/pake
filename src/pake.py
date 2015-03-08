@@ -214,8 +214,7 @@ class Module:
         self.targets = []
         self.base_dir = os.path.dirname(filename)
 
-        tokenizer = parsing.Tokenizer(filename)
-        self.tokens = tokenizer.tokens
+        self.tokens = parsing.parse(filename)
 
         self.__parse()
 
