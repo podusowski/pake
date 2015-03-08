@@ -44,10 +44,9 @@ class Configuration:
         return self.name
 
 class CxxToolchain:
-    def __init__(self, configuration, variable_deposit, module_name, source_tree):
+    def __init__(self, configuration, variable_deposit, module_name, _source_tree):
         self.configuration = configuration
         self.module_name = module_name
-        self.source_tree = source_tree
 
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
         self.compiler_flags = self.__simple_eval(configuration.compiler_flags)
@@ -61,8 +60,8 @@ class CxxToolchain:
         prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
         prerequisites.append(in_filename)
 
-        ui.debug("appending prerequisites from pake modules: " + str(self.source_tree.files))
-        for module_filename in self.source_tree.files:
+        ui.debug("appending prerequisites from pake modules: " + str(fsutils.pake_files))
+        for module_filename in fsutils.pake_files:
             prerequisites.append(module_filename)
 
         ui.debug("prerequisites: " + str(prerequisites))

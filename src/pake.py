@@ -345,29 +345,10 @@ class Module:
         except StopIteration:
             ui.debug("eof")
 
-class SourceTree:
-    def __init__(self):
-        self.files = self.__find_pake_files()
-
-    def __find_pake_files(self, path = os.getcwd()):
-        ret = []
-        for (dirpath, dirnames, filenames) in os.walk(path):
-            for f in filenames:
-                if not dirpath.startswith(fsutils.BUILD_ROOT):
-                    filename = dirpath + "/" + f
-                    (base, ext) = os.path.splitext(filename)
-                    if ext == ".pake":
-                        ret.append(filename)
-        return ret
-
-def find_pake_files():
-    tree = SourceTree()
-    return tree.files
-
 modules = [] #TODO: do we need to store it?
 
 def parse_source_tree(jobs, configuration_deposit, target_deposit):
-    for filename in find_pake_files():
+    for filename in fsutils.pake_files:
         module = Module(jobs, configuration_deposit, target_deposit, filename)
         modules.append(module)
 
@@ -383,9 +364,8 @@ def main():
     args = parser.parse_args()
     ui.debug(str(args))
 
-    source_tree = SourceTree()
     configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
-    target_deposit = targets.TargetDeposit(configuration_deposit, source_tree)
+    target_deposit = targets.TargetDeposit(configuration_deposit, None)
 
     parse_source_tree(int(args.jobs), configuration_deposit, target_deposit)
 

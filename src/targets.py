@@ -9,9 +9,8 @@ import shell
 import variable_deposit
 
 class TargetDeposit:
-    def __init__(self, configuration_deposit, source_tree):
+    def __init__(self, configuration_deposit, _source_tree):
         self.configuration_deposit = configuration_deposit
-        self.source_tree = source_tree
         self.targets = {}
         self.built_targets = []
 
@@ -58,7 +57,7 @@ class TargetDeposit:
             configuration,
             None,
             target.common_parameters.name,
-            self.source_tree)
+            None)
 
         target.before()
         target.build(toolchain)
