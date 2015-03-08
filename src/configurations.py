@@ -5,10 +5,7 @@ import command_line
 configurations = {}
 
 def get_selected_configuration():
-    return get_configuration(command_line.args.configuration)
-
-def get_configuration(configuration_name):
-    return configurations[configuration_name]
+    return configurations[command_line.args.configuration]
 
 def add_configuration(configuration):
     ui.debug("adding configuration: " + str(configuration))
@@ -20,7 +17,6 @@ def _create_default_configuration():
 
 class Configuration:
     def __init__(self):
-        self.defined_in = ""
         self.name = "__default"
         self.compiler = [lexer.Token.make_literal("c++")]
         self.compiler_flags = [lexer.Token.make_literal("-I.")]
