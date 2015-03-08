@@ -1,7 +1,7 @@
 import os
 
 import ui
-import parsing
+import lexer
 import fsutils
 
 modules = {}
@@ -11,12 +11,12 @@ def export_special_variables(configuration):
     ui.push()
 
     add_empty("__configuration", "$__null")
-    add("__configuration", "$__name", parsing.Token.make_literal(configuration.name))
+    add("__configuration", "$__name", lexer.Token.make_literal(configuration.name))
     for (value, name) in configuration.export:
         add("__configuration", name.content, value)
 
     for module in modules:
-        add(module, "$__build", parsing.Token(parsing.Token.LITERAL, fsutils.build_dir(configuration.name)))
+        add(module, "$__build", lexer.Token(lexer.Token.LITERAL, fsutils.build_dir(configuration.name)))
 
     ui.pop()
 
@@ -41,11 +41,11 @@ def eval(current_module, l):
 
     ret = []
     for token in l:
-        if token.is_a(parsing.Token.LITERAL):
+        if token.is_a(lexer.Token.LITERAL):
             content = __eval_literal(current_module, token.content)
             ui.debug("  " + token.content + " = " + content)
             ret.append(content)
-        elif token.is_a(parsing.Token.VARIABLE):
+        elif token.is_a(lexer.Token.VARIABLE):
             parts = token.content.split(".")
 
             ui.debug("dereferencing " + str(parts))
@@ -67,7 +67,7 @@ def eval(current_module, l):
                 ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
             for value in modules[module][name]:
-                if value.is_a(parsing.Token.VARIABLE):
+                if value.is_a(lexer.Token.VARIABLE):
                     re = eval(module, [value])
                     for v in re: ret.append(v)
                 else:
@@ -107,7 +107,7 @@ def __eval_literal(current_module, s):
         elif state == STATE_READING_NAME:
             if c == "}":
                 ui.debug("variable: " + variable_name)
-                evaluated_variable = eval(current_module, [parsing.Token(parsing.Token.VARIABLE, variable_name)])
+                evaluated_variable = eval(current_module, [lexer.Token(lexer.Token.VARIABLE, variable_name)])
                 ret += " ".join(evaluated_variable)
                 variable_name = '$'
                 state = STATE_READING

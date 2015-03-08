@@ -8,7 +8,7 @@ import shell
 import variable_deposit
 
 # TODO: try to drop it
-import parsing
+import lexer
 
 class ConfigurationDeposit:
     def __init__(self, selected_configuration_name):
@@ -33,11 +33,11 @@ class ConfigurationDeposit:
 class Configuration:
     def __init__(self):
         self.name = "__default"
-        self.compiler = [parsing.Token.make_literal("c++")]
-        self.compiler_flags = [parsing.Token.make_literal("-I.")]
-        self.linker_flags = [parsing.Token.make_literal("-L.")]
-        self.application_suffix = [parsing.Token.make_literal("")]
-        self.archiver = [parsing.Token.make_literal("ar")]
+        self.compiler = [lexer.Token.make_literal("c++")]
+        self.compiler_flags = [lexer.Token.make_literal("-I.")]
+        self.linker_flags = [lexer.Token.make_literal("-L.")]
+        self.application_suffix = [lexer.Token.make_literal("")]
+        self.archiver = [lexer.Token.make_literal("ar")]
         self.export = []
 
     def __repr__(self):
