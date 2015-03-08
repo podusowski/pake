@@ -1,6 +1,5 @@
 import os
 import threading
-import subprocess
 
 import ui
 import fsutils

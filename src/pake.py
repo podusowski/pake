@@ -1,15 +1,5 @@
 #!/usr/bin/env python
 
-import os
-import sys
-import tempfile
-import stat
-import subprocess
-import argparse
-import marshal
-import shutil
-import threading
-
 import fsutils
 import ui
 import targets

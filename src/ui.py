@@ -12,7 +12,7 @@ BOLD_BLUE = "\033[34;1m"
 _log_depth = 0
 _lock = threading.Lock()
 
-class Ident:
+class _Ident:
     def __enter__(self):
         global _log_depth
         with _lock:
@@ -23,7 +23,7 @@ class Ident:
         with _lock:
             _log_depth -= 1
 
-ident = Ident()
+ident = _Ident()
 
 def push():
     global _log_depth
