@@ -46,13 +46,12 @@ class CxxParameters:
         self.built_targets = []
 
 class Module:
-    def __init__(self, target_deposit, filename):
+    def __init__(self, filename):
         assert isinstance(filename, str)
 
         ui.debug("lexer " + filename)
         ui.push()
 
-        self.target_deposit = target_deposit
         self.filename = filename
         self.name = self.__get_module_name(filename)
         self.lines = []
@@ -80,7 +79,7 @@ class Module:
 
     def __add_target(self, target):
         ui.debug("adding target: " + str(target))
-        self.target_deposit.add_target(target)
+        targets.add_target(target)
 
     def __parse_set_or_append(self, it, append):
         token = it.next()
@@ -335,9 +334,9 @@ class Module:
         except StopIteration:
             ui.debug("eof")
 
-def parse_source_tree(target_deposit):
+def parse_source_tree():
     for filename in fsutils.pake_files:
-        module = Module(target_deposit, filename)
+        module = Module(filename)
 
     configuration = configurations.get_selected_configuration()
     variables.export_special_variables(configuration)
@@ -345,20 +344,18 @@ def parse_source_tree(target_deposit):
 def main():
     import command_line
 
-    target_deposit = targets.TargetDeposit()
-
-    parse_source_tree(target_deposit)
+    parse_source_tree()
 
     ui.bigstep("configuration", str(configurations.get_selected_configuration()))
 
     if len(command_line.args.target) > 0:
         for target in command_line.args.target:
-            target_deposit.build(target)
+            targets.build(target)
     elif command_line.args.all:
-        target_deposit.build_all()
+        targets.build_all()
     else:
         ui.info(ui.BOLD + "targets found in this source tree:" + ui.RESET)
-        ui.info(str(target_deposit))
+        ui.info(str(targets.targets))
 
 if __name__ == '__main__':
     main()

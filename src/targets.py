@@ -9,72 +9,64 @@ import shell
 import variables
 import configurations
 
-class TargetDeposit:
-    def __init__(self):
-        self.targets = {}
-        self.built_targets = []
+targets = {}
+_built_targets = []
 
-    def __repr__(self):
-        s = ''
-        for target in self.targets:
-            s += " * " + target + "\n"
-        return s
+def add_target(target):
+    targets[target.common_parameters.name] = target
 
-    def add_target(self, target):
-        self.targets[target.common_parameters.name] = target
+def build(name):
+    configuration = configurations.get_selected_configuration()
 
-    def build(self, name):
-        configuration = configurations.get_selected_configuration()
+    fsutils.make_build_dir(configuration.name)
 
-        fsutils.make_build_dir(configuration.name)
+    ui.debug("building " + name + " with configuration " + str(configuration))
 
-        ui.debug("building " + name + " with configuration " + str(configuration))
+    with ui.ident:
+        if name in _built_targets:
+            ui.debug(name + " already build, skipping")
+            return
+        else:
+            _built_targets.append(name)
 
-        with ui.ident:
-            if name in self.built_targets:
-                ui.debug(name + " already build, skipping")
-                return
-            else:
-                self.built_targets.append(name)
+        if not name in targets:
+            ui.fatal("target " + name + " not found")
 
-            if not name in self.targets:
-                ui.fatal("target " + name + " not found")
+        target = targets[name]
 
-            target = self.targets[name]
+        if not target.is_visible(configuration):
+            ui.fatal("target " + name + " is not visible in " + str(configuration))
 
-            if not target.is_visible(configuration):
-                ui.fatal("target " + name + " is not visible in " + str(configuration))
+        evalueated_depends_on = variables.eval(
+            target.common_parameters.module_name,
+            target.common_parameters.depends_on)
 
-            evalueated_depends_on = variables.eval(
-                target.common_parameters.module_name,
-                target.common_parameters.depends_on)
+        for dependency in evalueated_depends_on:
+            ui.debug(name + " depends on " + dependency)
+            build(dependency)
 
-            for dependency in evalueated_depends_on:
-                ui.debug(name + " depends on " + dependency)
-                self.build(dependency)
+        toolchain = compiler.CxxToolchain(
+            configuration,
+            None,
+            target.common_parameters.name,
+            None)
 
-            toolchain = compiler.CxxToolchain(
-                configuration,
-                None,
-                target.common_parameters.name,
-                None)
+        target.before()
+        target.build(toolchain)
+        target.after()
+        target.copy_resources(toolchain)
 
-            target.before()
-            target.build(toolchain)
-            target.after()
-            target.copy_resources(toolchain)
+def build_all():
+    ui.bigstep("building all targets", " ".join(targets))
 
-    def build_all(self):
-        ui.bigstep("building all targets", " ".join(self.targets))
+    configuration = configurations.get_selected_configuration()
 
-        configuration = configurations.get_selected_configuration()
-
-        for name in self.targets:
-            target = self.targets[name]
-            if target.is_visible(configuration):
-                self.build(name)
-            else:
-                ui.bigstep("skip", name)
+    for name in targets:
+        target = targets[name]
+        if target.is_visible(configuration):
+            build(name)
+        else:
+            ui.bigstep("skip", name)
 
 class Target:
     def __init__(self, common_parameters):
