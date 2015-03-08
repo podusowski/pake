@@ -1,7 +1,12 @@
 import os
+
 import ui
+import shell
 
 BUILD_ROOT = os.path.normpath(os.getcwd() + "/__build")
+
+def make_build_dir(configuration_name):
+    shell.execute("mkdir -p " + build_dir(configuration_name))
 
 def build_dir(configuration_name):
     return os.path.normpath(BUILD_ROOT + "/" + configuration_name)

@@ -26,45 +26,43 @@ class TargetDeposit:
     def build(self, name):
         configuration = self.configuration_deposit.get_selected_configuration()
 
-        shell.execute("mkdir -p " + fsutils.build_dir(configuration.name))
+        fsutils.make_build_dir(configuration.name)
 
         ui.debug("building " + name + " with configuration " + str(configuration))
-        ui.push()
 
-        if name in self.built_targets:
-            ui.debug(name + " already build, skipping")
-            return
-        else:
-            self.built_targets.append(name)
+        with ui.ident:
+            if name in self.built_targets:
+                ui.debug(name + " already build, skipping")
+                return
+            else:
+                self.built_targets.append(name)
 
-        if not name in self.targets:
-            ui.fatal("target " + name + " not found")
+            if not name in self.targets:
+                ui.fatal("target " + name + " not found")
 
-        target = self.targets[name]
+            target = self.targets[name]
 
-        if not target.is_visible(configuration):
-            ui.fatal("target " + name + " is not visible in " + str(configuration))
+            if not target.is_visible(configuration):
+                ui.fatal("target " + name + " is not visible in " + str(configuration))
 
-        evalueated_depends_on = variable_deposit.eval(
-            target.common_parameters.module_name,
-            target.common_parameters.depends_on)
+            evalueated_depends_on = variable_deposit.eval(
+                target.common_parameters.module_name,
+                target.common_parameters.depends_on)
 
-        for dependency in evalueated_depends_on:
-            ui.debug(name + " depends on " + dependency)
-            self.build(dependency)
+            for dependency in evalueated_depends_on:
+                ui.debug(name + " depends on " + dependency)
+                self.build(dependency)
 
-        toolchain = compiler.CxxToolchain(
-            configuration,
-            None,
-            target.common_parameters.name,
-            None)
+            toolchain = compiler.CxxToolchain(
+                configuration,
+                None,
+                target.common_parameters.name,
+                None)
 
-        target.before()
-        target.build(toolchain)
-        target.after()
-        target.copy_resources(toolchain)
-
-        ui.pop()
+            target.before()
+            target.build(toolchain)
+            target.after()
+            target.copy_resources(toolchain)
 
     def build_all(self):
         ui.bigstep("building all targets", " ".join(self.targets))

@@ -345,12 +345,9 @@ class Module:
         except StopIteration:
             ui.debug("eof")
 
-modules = [] #TODO: do we need to store it?
-
 def parse_source_tree(jobs, configuration_deposit, target_deposit):
     for filename in fsutils.pake_files:
         module = Module(jobs, configuration_deposit, target_deposit, filename)
-        modules.append(module)
 
     configuration = configuration_deposit.get_selected_configuration()
     variable_deposit.export_special_variables(configuration)
