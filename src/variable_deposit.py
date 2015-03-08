@@ -8,32 +8,30 @@ modules = {}
 
 def export_special_variables(configuration):
     ui.debug("exporting special variables")
-    ui.push()
 
-    add_empty("__configuration", "$__null")
-    add("__configuration", "$__name", lexer.Token.make_literal(configuration.name))
-    for (value, name) in configuration.export:
-        add("__configuration", name.content, value)
+    with ui.ident:
+        add_empty("__configuration", "$__null")
+        add("__configuration", "$__name", lexer.Token.make_literal(configuration.name))
+        for (value, name) in configuration.export:
+            add("__configuration", name.content, value)
 
-    for module in modules:
-        add(module, "$__build", lexer.Token(lexer.Token.LITERAL, fsutils.build_dir(configuration.name)))
-
-    ui.pop()
+        for module in modules:
+            add(module, "$__build", lexer.Token(lexer.Token.LITERAL, fsutils.build_dir(configuration.name)))
 
 def pollute_environment(current_module):
     ui.debug("polluting environment")
-    ui.push()
-    for module in modules:
-        for (name, variable) in modules[module].iteritems():
-            evaluated = eval(module, variable)
-            env_name = module + "_" + name[1:]
-            os.environ[env_name] = " ".join(evaluated)
-            ui.debug("  " + env_name + ": " + str(evaluated))
-            if module == current_module:
-                env_short_name = name[1:]
-                os.environ[env_short_name] = " ".join(evaluated)
-                ui.debug("  " + env_short_name + ": " + str(evaluated))
-    ui.pop()
+
+    with ui.ident:
+        for module in modules:
+            for (name, variable) in modules[module].iteritems():
+                evaluated = eval(module, variable)
+                env_name = module + "_" + name[1:]
+                os.environ[env_name] = " ".join(evaluated)
+                ui.debug("  " + env_name + ": " + str(evaluated))
+                if module == current_module:
+                    env_short_name = name[1:]
+                    os.environ[env_short_name] = " ".join(evaluated)
+                    ui.debug("  " + env_short_name + ": " + str(evaluated))
 
 def eval(current_module, l):
     ui.debug("evaluating " + str(l) + " in context of module " + current_module)
@@ -83,41 +81,41 @@ def eval(current_module, l):
 
 def __eval_literal(current_module, s):
     ui.debug("evaluating literal: " + s)
-    ui.push()
-    ret = ""
 
-    STATE_READING = 1
-    STATE_WAITING_FOR_PARENTHESIS = 2
-    STATE_READING_NAME = 3
+    with ui.ident:
+        ret = ""
 
-    variable_name = '$'
-    state = STATE_READING
+        STATE_READING = 1
+        STATE_WAITING_FOR_PARENTHESIS = 2
+        STATE_READING_NAME = 3
 
-    for c in s:
-        if state == STATE_READING:
-            if c == "$":
-                state = STATE_WAITING_FOR_PARENTHESIS
-            else:
-                ret += c
-        elif state == STATE_WAITING_FOR_PARENTHESIS:
-            if c == "{":
-                state = STATE_READING_NAME
-            else:
-                ui.parse_error(msg="expecting { after $")
-        elif state == STATE_READING_NAME:
-            if c == "}":
-                ui.debug("variable: " + variable_name)
-                evaluated_variable = eval(current_module, [lexer.Token(lexer.Token.VARIABLE, variable_name)])
-                ret += " ".join(evaluated_variable)
-                variable_name = '$'
-                state = STATE_READING
-            else:
-                variable_name += c
-        elif state == STATE_READING_NAME:
-            variable_name = variable_name + c
+        variable_name = '$'
+        state = STATE_READING
 
-    ui.pop()
-    return ret
+        for c in s:
+            if state == STATE_READING:
+                if c == "$":
+                    state = STATE_WAITING_FOR_PARENTHESIS
+                else:
+                    ret += c
+            elif state == STATE_WAITING_FOR_PARENTHESIS:
+                if c == "{":
+                    state = STATE_READING_NAME
+                else:
+                    ui.parse_error(msg="expecting { after $")
+            elif state == STATE_READING_NAME:
+                if c == "}":
+                    ui.debug("variable: " + variable_name)
+                    evaluated_variable = eval(current_module, [lexer.Token(lexer.Token.VARIABLE, variable_name)])
+                    ret += " ".join(evaluated_variable)
+                    variable_name = '$'
+                    state = STATE_READING
+                else:
+                    variable_name += c
+            elif state == STATE_READING_NAME:
+                variable_name = variable_name + c
+
+        return ret
 
 def add_empty( module_name, name):
     ui.debug("adding empty variable in module " + module_name + " called " + name)
