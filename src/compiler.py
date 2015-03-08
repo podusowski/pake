@@ -5,6 +5,7 @@ import marshal
 import ui
 import fsutils
 import shell
+import variable_deposit
 
 # TODO: try to drop it
 import parsing
@@ -45,7 +46,6 @@ class Configuration:
 class CxxToolchain:
     def __init__(self, configuration, variable_deposit, module_name, source_tree):
         self.configuration = configuration
-        self.variable_deposit = variable_deposit
         self.module_name = module_name
         self.source_tree = source_tree
 
@@ -112,7 +112,7 @@ class CxxToolchain:
         return fsutils.build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
-        return " ".join(self.variable_deposit.eval(self.module_name, tokens))
+        return " ".join(variable_deposit.eval(self.module_name, tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         ui.debug("getting includes for " + in_filename)

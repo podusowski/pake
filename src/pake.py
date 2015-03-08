@@ -16,18 +16,17 @@ import ui
 import parsing
 import compiler
 import targets
+import variable_deposit
 
 """
     targets
 """
 class CommonTargetParameters:
-    def __init__(self, jobs, variable_deposit, root_path, module_name, name):
-        assert isinstance(variable_deposit, VariableDeposit)
+    def __init__(self, jobs, _variable_deposit, root_path, module_name, name):
         assert isinstance(module_name, str)
         assert isinstance(name, str)
 
         self.jobs = jobs
-        self.variable_deposit = variable_deposit
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
@@ -197,15 +196,13 @@ class VariableDeposit:
         ui.debug("  new value: " + str(self.modules[module_name][name]))
 
 class Module:
-    def __init__(self, jobs, variable_deposit, configuration_deposit, target_deposit, filename):
-        assert isinstance(variable_deposit, VariableDeposit)
+    def __init__(self, jobs, _variable_deposit, configuration_deposit, target_deposit, filename):
         assert isinstance(filename, str)
 
         ui.debug("parsing " + filename)
         ui.push()
 
         self.jobs = jobs
-        self.variable_deposit = variable_deposit
         self.configuration_deposit = configuration_deposit
         self.target_deposit = target_deposit
         self.filename = filename
@@ -218,12 +215,12 @@ class Module:
 
         self.__parse()
 
-        self.variable_deposit.add(
+        variable_deposit.add(
             self.name,
             "$__path",
             parsing.Token.make_literal(os.path.dirname(self.filename)))
 
-        self.variable_deposit.add_empty(
+        variable_deposit.add_empty(
             self.name,
             "$__null")
 
@@ -251,9 +248,9 @@ class Module:
             token = it.next()
             if token.is_a(parsing.Token.LITERAL) or token.is_a(parsing.Token.VARIABLE):
                 if append or second_add:
-                    self.variable_deposit.append(self.name, variable_name, token)
+                    variable_deposit.append(self.name, variable_name, token)
                 else:
-                    self.variable_deposit.add(self.name, variable_name, token)
+                    variable_deposit.add(self.name, variable_name, token)
                     second_add = True
 
             elif token.is_a(parsing.Token.NEWLINE):
@@ -354,7 +351,7 @@ class Module:
 
         common_parameters = CommonTargetParameters(
             self.jobs,
-            self.variable_deposit,
+            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -380,7 +377,7 @@ class Module:
     def __parse_static_library(self, target_name, it):
         common_parameters = CommonTargetParameters(
             self.jobs,
-            self.variable_deposit,
+            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -404,7 +401,7 @@ class Module:
     def __parse_phony(self, target_name, it):
         common_parameters = CommonTargetParameters(
             self.jobs,
-            self.variable_deposit,
+            None,
             os.path.dirname(self.filename),
             self.name,
             target_name)
@@ -515,9 +512,8 @@ class SourceTree:
 
 
 class SourceTreeParser:
-    def __init__(self, jobs, source_tree, variable_deposit, configuration_deposit, target_deposit):
+    def __init__(self, jobs, source_tree, _variable_deposit, configuration_deposit, target_deposit):
         self.jobs = jobs
-        self.variable_deposit = variable_deposit
         self.configuration_deposit = configuration_deposit
         self.target_deposit = target_deposit
         self.modules = []
@@ -525,7 +521,7 @@ class SourceTreeParser:
         for filename in source_tree.files:
             module = Module(
                 self.jobs,
-                self.variable_deposit,
+                None,
                 self.configuration_deposit,
                 self.target_deposit,
                 filename)
@@ -533,7 +529,7 @@ class SourceTreeParser:
             self.modules.append(module)
 
         configuration = self.configuration_deposit.get_selected_configuration()
-        self.variable_deposit.export_special_variables(configuration)
+        variable_deposit.export_special_variables(configuration)
 
 
 def main():
@@ -546,10 +542,9 @@ def main():
     ui.debug(str(args))
 
     source_tree = SourceTree()
-    variable_deposit = VariableDeposit()
     configuration_deposit = compiler.ConfigurationDeposit(args.configuration)
-    target_deposit = targets.TargetDeposit(variable_deposit, configuration_deposit, source_tree)
-    parser = SourceTreeParser(int(args.jobs), source_tree, variable_deposit, configuration_deposit, target_deposit)
+    target_deposit = targets.TargetDeposit(None, configuration_deposit, source_tree)
+    parser = SourceTreeParser(int(args.jobs), source_tree, None, configuration_deposit, target_deposit)
 
     ui.bigstep("configuration", str(configuration_deposit.get_selected_configuration()))
 

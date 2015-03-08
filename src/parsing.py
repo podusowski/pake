@@ -76,8 +76,8 @@ class Token:
         return self.token_type == token_type
 
 def parse(filename):
-    tokenizer = Tokenizer()
-    return tokenizer.parse(filename)
+    tokenizer = Tokenizer(filename)
+    return tokenizer.tokens
 
 class Tokenizer:
     def __init__(self, filename):

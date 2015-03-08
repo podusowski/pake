@@ -6,10 +6,10 @@ import ui
 import fsutils
 import compiler
 import shell
+import variable_deposit
 
 class TargetDeposit:
-    def __init__(self, variable_deposit, configuration_deposit, source_tree):
-        self.variable_deposit = variable_deposit
+    def __init__(self, _variable_deposit, configuration_deposit, source_tree):
         self.configuration_deposit = configuration_deposit
         self.source_tree = source_tree
         self.targets = {}
@@ -46,7 +46,7 @@ class TargetDeposit:
         if not target.is_visible(configuration):
             ui.fatal("target " + name + " is not visible in " + str(configuration))
 
-        evalueated_depends_on = self.variable_deposit.eval(
+        evalueated_depends_on = variable_deposit.eval(
             target.common_parameters.module_name,
             target.common_parameters.depends_on)
 
@@ -56,7 +56,7 @@ class TargetDeposit:
 
         toolchain = compiler.CxxToolchain(
             configuration,
-            self.variable_deposit,
+            None,
             target.common_parameters.name,
             self.source_tree)
 
@@ -132,7 +132,7 @@ class Target:
                     break
 
         if should_run:
-            self.common_parameters.variable_deposit.pollute_environment(self.common_parameters.module_name)
+            variable_deposit.pollute_environment(self.common_parameters.module_name)
 
             evaluated_cmds = self.eval(cmds)
 
@@ -143,7 +143,7 @@ class Target:
         os.chdir(root_dir)
 
     def eval(self, variable):
-        return self.common_parameters.variable_deposit.eval(
+        return variable_deposit.eval(
             self.common_parameters.module_name,
             variable)
 
