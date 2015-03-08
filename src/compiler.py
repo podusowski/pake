@@ -12,9 +12,8 @@ import configurations
 import lexer
 
 class CxxToolchain:
-    def __init__(self, _configuration, variables, module_name, _source_tree):
+    def __init__(self, _configuration, _variables, _module_name, _source_tree):
         self.configuration = configurations.get_selected_configuration()
-        self.module_name = module_name
 
         configuration = self.configuration
         self.compiler_cmd = self.__simple_eval(configuration.compiler)
@@ -80,7 +79,9 @@ class CxxToolchain:
         return fsutils.build_dir(self.configuration.name)
 
     def __simple_eval(self, tokens):
-        return " ".join(variables.eval(self.module_name, tokens))
+        # module don't matter, configuration have to be prefixed with module in which
+        # configuration was defined (yeah, this sux, I know)
+        return " ".join(variables.eval("", tokens))
 
     def __fetch_includes(self, target_name, in_filename, include_dirs, compiler_flags):
         ui.debug("getting includes for " + in_filename)

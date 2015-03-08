@@ -20,6 +20,7 @@ def _create_default_configuration():
 
 class Configuration:
     def __init__(self):
+        self.defined_in = ""
         self.name = "__default"
         self.compiler = [lexer.Token.make_literal("c++")]
         self.compiler_flags = [lexer.Token.make_literal("-I.")]

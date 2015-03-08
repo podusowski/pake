@@ -48,7 +48,7 @@ def build(name):
         toolchain = compiler.CxxToolchain(
             None,
             None,
-            target.common_parameters.name,
+            None,
             None)
 
         target.before()
