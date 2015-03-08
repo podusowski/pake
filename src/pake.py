@@ -17,6 +17,7 @@ import lexer
 import compiler
 import targets
 import variable_deposit
+import configurations
 
 """
     targets
@@ -45,13 +46,12 @@ class CxxParameters:
         self.built_targets = []
 
 class Module:
-    def __init__(self, configuration_deposit, target_deposit, filename):
+    def __init__(self, target_deposit, filename):
         assert isinstance(filename, str)
 
         ui.debug("lexer " + filename)
         ui.push()
 
-        self.configuration_deposit = configuration_deposit
         self.target_deposit = target_deposit
         self.filename = filename
         self.name = self.__get_module_name(filename)
@@ -283,7 +283,7 @@ class Module:
         else: ui.parse_error(token, msg="unknown target type: " + target_type)
 
     def __parse_configuration(self, it):
-        configuration = compiler.Configuration()
+        configuration = configurations.Configuration()
 
         # name
         token = it.next()
@@ -309,7 +309,7 @@ class Module:
                 ui.parse_error(token)
 
         ui.debug("configuration parsed:" + str(configuration))
-        self.configuration_deposit.add_configuration(configuration)
+        configurations.add_configuration(configuration)
 
     def __parse_directive(self, it):
         while True:
@@ -335,22 +335,21 @@ class Module:
         except StopIteration:
             ui.debug("eof")
 
-def parse_source_tree(configuration_deposit, target_deposit):
+def parse_source_tree(target_deposit):
     for filename in fsutils.pake_files:
-        module = Module(configuration_deposit, target_deposit, filename)
+        module = Module(target_deposit, filename)
 
-    configuration = configuration_deposit.get_selected_configuration()
+    configuration = configurations.get_selected_configuration()
     variable_deposit.export_special_variables(configuration)
 
 def main():
     import command_line
 
-    configuration_deposit = compiler.ConfigurationDeposit(command_line.args.configuration)
-    target_deposit = targets.TargetDeposit(configuration_deposit)
+    target_deposit = targets.TargetDeposit()
 
-    parse_source_tree(configuration_deposit, target_deposit)
+    parse_source_tree(target_deposit)
 
-    ui.bigstep("configuration", str(configuration_deposit.get_selected_configuration()))
+    ui.bigstep("configuration", str(configurations.get_selected_configuration()))
 
     if len(command_line.args.target) > 0:
         for target in command_line.args.target:

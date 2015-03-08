@@ -7,10 +7,10 @@ import fsutils
 import compiler
 import shell
 import variable_deposit
+import configurations
 
 class TargetDeposit:
-    def __init__(self, configuration_deposit):
-        self.configuration_deposit = configuration_deposit
+    def __init__(self):
         self.targets = {}
         self.built_targets = []
 
@@ -24,7 +24,7 @@ class TargetDeposit:
         self.targets[target.common_parameters.name] = target
 
     def build(self, name):
-        configuration = self.configuration_deposit.get_selected_configuration()
+        configuration = configurations.get_selected_configuration()
 
         fsutils.make_build_dir(configuration.name)
 
@@ -67,7 +67,7 @@ class TargetDeposit:
     def build_all(self):
         ui.bigstep("building all targets", " ".join(self.targets))
 
-        configuration = self.configuration_deposit.get_selected_configuration()
+        configuration = configurations.get_selected_configuration()
 
         for name in self.targets:
             target = self.targets[name]

@@ -10,39 +10,6 @@ import variable_deposit
 # TODO: try to drop it
 import lexer
 
-class ConfigurationDeposit:
-    def __init__(self, selected_configuration_name):
-        self.selected_configuration_name = selected_configuration_name
-        self.configurations = {}
-        self.__create_default_configuration()
-
-    def get_selected_configuration(self):
-        return self.get_configuration(self.selected_configuration_name)
-
-    def get_configuration(self, configuration_name):
-        return self.configurations[configuration_name]
-
-    def add_configuration(self, configuration):
-        ui.debug("adding configuration: " + str(configuration))
-        self.configurations[configuration.name] = configuration
-
-    def __create_default_configuration(self):
-        configuration = Configuration()
-        self.add_configuration(configuration)
-
-class Configuration:
-    def __init__(self):
-        self.name = "__default"
-        self.compiler = [lexer.Token.make_literal("c++")]
-        self.compiler_flags = [lexer.Token.make_literal("-I.")]
-        self.linker_flags = [lexer.Token.make_literal("-L.")]
-        self.application_suffix = [lexer.Token.make_literal("")]
-        self.archiver = [lexer.Token.make_literal("ar")]
-        self.export = []
-
-    def __repr__(self):
-        return self.name
-
 class CxxToolchain:
     def __init__(self, configuration, variable_deposit, module_name, _source_tree):
         self.configuration = configuration
