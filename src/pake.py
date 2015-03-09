@@ -19,7 +19,9 @@ def main():
 
     parse_source_tree()
 
-    ui.bigstep("configuration", str(configurations.get_selected_configuration()))
+    configuration = configurations.get_selected_configuration()
+    if configuration.name != "__default":
+        ui.bigstep("configuration", str(configurations.get_selected_configuration()))
 
     if len(command_line.args.target) > 0:
         for target in command_line.args.target:
