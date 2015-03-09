@@ -60,10 +60,6 @@ class Module:
         (root, ext) = os.path.splitext(base)
         return root
 
-    def __add_target(self, target):
-        ui.debug("adding target: " + str(target))
-        targets.add_target(target)
-
     def __parse_set_or_append(self, it, append):
         token = it.next()
         if token == lexer.Token.VARIABLE:
@@ -198,7 +194,7 @@ class Module:
                 ui.parse_error(token)
 
         target = targets.Application(common_parameters, cxx_parameters, link_with, library_dirs)
-        self.__add_target(target)
+        targets.add_target(target)
 
     def __parse_static_library(self, target_name, it):
         common_parameters = CommonTargetParameters(
@@ -220,7 +216,7 @@ class Module:
                 ui.parse_error(token)
 
         target = targets.StaticLibrary(common_parameters, cxx_parameters)
-        self.__add_target(target)
+        targets.add_target(target)
 
     def __parse_phony(self, target_name, it):
         common_parameters = CommonTargetParameters(
@@ -244,7 +240,7 @@ class Module:
                 ui.parse_error(token)
 
         target = targets.Phony(common_parameters)
-        self.__add_target(target)
+        targets.add_target(target)
 
     def __parse_target(self, it):
         token = it.next()

@@ -12,6 +12,8 @@ targets = {}
 _built_targets = []
 
 def add_target(target):
+    ui.debug("adding target: " + str(target))
+
     targets[target.common_parameters.name] = target
 
 def build(name):
