@@ -29,11 +29,17 @@ def main():
     elif command_line.args.all:
         targets.build_all()
     else:
-        ui.info(ui.BOLD + "targets found in this source tree:" + ui.RESET)
-        ui.info(str(targets.targets))
+        ui.info("no target selected\n")
+
+        ui.info(ui.BOLD + "targets:" + ui.RESET)
+        for target in targets.targets:
+            ui.info("  " + str(target))
 
         ui.info(ui.BOLD + "\nconfigurations:" + ui.RESET)
-        ui.info(str(configurations.configurations))
+        for configuration in configurations.configurations:
+            ui.info("  " + str(configuration))
+
+        ui.info("\nsee --help for more\n")
 
 if __name__ == '__main__':
     main()

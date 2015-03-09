@@ -70,7 +70,7 @@ class Target:
         self.common_parameters = common_parameters
 
     def __repr__(self):
-        return self.common_parameters.name
+        return self.common_parameters.name + " (from " + self.common_parameters.module_name + ")"
 
     def before(self):
         self.__try_run(self.common_parameters.run_before)
