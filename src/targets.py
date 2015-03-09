@@ -46,11 +46,7 @@ def build(name):
             ui.debug(name + " depends on " + dependency)
             build(dependency)
 
-        toolchain = compiler.CxxToolchain(
-            None,
-            None,
-            None,
-            None)
+        toolchain = compiler.Gnu()
 
         target.before()
         target.build(toolchain)
