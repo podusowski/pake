@@ -39,11 +39,11 @@ def eval(current_module, l):
 
     ret = []
     for token in l:
-        if token.is_a(lexer.Token.LITERAL):
+        if token == lexer.Token.LITERAL:
             content = __eval_literal(current_module, token.content)
             ui.debug("  " + token.content + " = " + content)
             ret.append(content)
-        elif token.is_a(lexer.Token.VARIABLE):
+        elif token == lexer.Token.VARIABLE:
             parts = token.content.split(".")
 
             ui.debug("dereferencing " + str(parts))
@@ -117,7 +117,7 @@ def __eval_literal(current_module, s):
 
         return ret
 
-def add_empty( module_name, name):
+def add_empty(module_name, name):
     ui.debug("adding empty variable in module " + module_name + " called " + name)
 
     if not module_name in modules:

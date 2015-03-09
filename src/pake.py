@@ -30,6 +30,9 @@ def main():
         ui.info(ui.BOLD + "targets found in this source tree:" + ui.RESET)
         ui.info(str(targets.targets))
 
+        ui.info(ui.BOLD + "\nconfigurations:" + ui.RESET)
+        ui.info(str(configurations.configurations))
+
 if __name__ == '__main__':
     main()
 
