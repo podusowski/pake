@@ -69,8 +69,27 @@ class Target:
     def __init__(self, common_parameters):
         self.common_parameters = common_parameters
 
-    def __repr__(self):
-        return self.common_parameters.name + " (from " + self.common_parameters.module_name + ")"
+    def __str__(self):
+        ra = str(self.common_parameters.run_after)
+        rb = str(self.common_parameters.run_before)
+
+        s = self.common_parameters.name + " (" + self.type_string()
+
+        comma_needed = True
+
+        if len(rb) > 0:
+            s += ", run before: " + rb
+            comma_needed = True
+
+        if len(ra) > 0:
+            if comma_needed:
+                s += ", "
+
+            s += "run after: " + ra
+
+        s += ")"
+
+        return s
 
     def before(self):
         self.__try_run(self.common_parameters.run_before)
@@ -136,6 +155,9 @@ class Target:
 class Phony(Target):
     def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
+
+    def type_string(self):
+        return "phony"
 
     def build(self, configuration):
         ui.debug("phony build")
@@ -222,6 +244,9 @@ class Application(CompileableTarget):
         self.link_with = link_with
         self.library_dirs = library_dirs
 
+    def type_string(self):
+        return "application"
+
     def build(self, toolchain):
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
@@ -242,6 +267,10 @@ class Application(CompileableTarget):
 class StaticLibrary(CompileableTarget):
     def __init__(self, common_parameters, cxx_parameters):
         CompileableTarget.__init__(self, common_parameters, cxx_parameters)
+
+
+    def type_string(self):
+        return "static_library"
 
     def build(self, toolchain):
         root_dir = os.getcwd()

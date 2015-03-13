@@ -32,7 +32,7 @@ def main():
         ui.info("no target selected\n")
 
         ui.info(ui.BOLD + "targets:" + ui.RESET)
-        for target in targets.targets:
+        for target in targets.targets.values():
             ui.info("  " + str(target))
 
         ui.info(ui.BOLD + "\nconfigurations:" + ui.RESET)
