@@ -8,6 +8,7 @@ def _parse_command_line():
     parser.add_argument('-a', '--all',  action="store_true", help='build all targets')
     parser.add_argument('-c', action='store', dest='configuration', default="__default", nargs="?", help='configuration to be used')
     parser.add_argument('-j', action='store', dest='jobs', default="1", nargs="?", help='parallel jobs to be used')
+    parser.add_argument('-v', '--verbose',  action="store_true", help='show tool invokations')
     args = parser.parse_args()
     ui.debug(str(args))
     return args

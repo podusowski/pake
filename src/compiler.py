@@ -6,6 +6,7 @@ import fsutils
 import shell
 import variables
 import configurations
+import command_line
 
 # TODO: try to drop it
 import lexer
@@ -25,9 +26,15 @@ class Gnu:
             ui.debug("prerequisites: " + str(prerequisites))
 
             if fsutils.is_any_newer_than(prerequisites, out_filename):
-                ui.step(configurations.compiler(), in_filename)
                 shell.execute("mkdir -p " + os.path.dirname(out_filename))
-                shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename)
+
+                cmd = configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename
+                if command_line.args.verbose:
+                    ui.step(configurations.compiler(), cmd)
+                else:
+                    ui.step(configurations.compiler(), in_filename)
+
+                shell.execute(cmd)
 
     def link_application(self, out_filename, in_filenames, link_with, library_dirs):
         if fsutils.is_any_newer_than(in_filenames, out_filename) or self.__are_libs_newer_than_target(link_with, out_filename):
