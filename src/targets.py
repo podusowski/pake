@@ -101,11 +101,11 @@ class Target:
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        resources = self.eval(self.common_parameters.resources)
-        for resource in resources:
+        for resource in self.eval(self.common_parameters.resources):
             ui.step("copy", resource)
-            shell.execute("rsync --update -r '" + resource + "' '"
-                                                + toolchain.build_dir() + "/'")
+            shell.execute("rsync --update -r '{resource}' '{build_dir}/'"
+                          .format(resource = resource,
+                                  build_dir= toolchain.build_dir()))
 
         os.chdir(root_dir)
 
@@ -125,7 +125,7 @@ class Target:
         evaluated_prerequisites = self.eval(self.common_parameters.prerequisites)
 
         should_run = True
-        if len(evaluated_prerequisites) > 0 and len(evaluated_artefacts) > 0:
+        if evaluated_prerequisites and evaluated_artefacts:
             should_run = False
 
             ui.debug("checking prerequisites ({!s}) for making {!s}"
