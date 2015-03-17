@@ -75,26 +75,21 @@ class Target:
         self.common_parameters = common_parameters
 
     def __str__(self):
-        ra = str(self.common_parameters.run_after)
-        rb = str(self.common_parameters.run_before)
 
-        s = self.common_parameters.name + " (" + self.type_string()
+        def decorate_not_empty(phrase, decor):
+            if phrase:
+                return str(decor) + str(phrase)
+            else:
+                return ''
 
-        comma_needed = True
+        ra = decorate_not_empty(self.common_parameters.run_after, "run after: ")
+        rb = decorate_not_empty(self.common_parameters.run_before, "run before: ")
 
-        if rb:
-            s += ", run before: " + rb
-            comma_needed = True
+        params = ','.join([ra, rb])
 
-        if ra:
-            if comma_needed:
-                s += ", "
-
-            s += "run after: " + ra
-
-        s += ")"
-
-        return s
+        return '{name} ({params})'.format(name = self.common_parameters.name,
+                                          params = ' '.join([self.type_string(),
+                                                            params]))
 
     def before(self):
         self.__try_run(self.common_parameters.run_before)
