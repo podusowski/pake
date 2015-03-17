@@ -230,7 +230,7 @@ class CompileableTarget(Target):
             thread.start()
 
         while threads:
-            for thread in [thread in threads if not thread.isAlive()]:
+            for thread in [thread for thread in threads if not thread.isAlive()]:
                 thread.join(0.1)
                 threads.remove(thread)
 
