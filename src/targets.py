@@ -229,14 +229,6 @@ class CompileableTarget(Target):
             thread.daemon = True
             thread.start()
 
-        done = False
-        while not done:
-            done = True
-            for thread in threads:
-                if thread.isAlive():
-                    done = False
-                    thread.join(0.1)
-
         while threads:
             for thread in [thread in threads if not thread.isAlive()]:
                 thread.join(0.1)
