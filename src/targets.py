@@ -134,7 +134,8 @@ class Target:
             for artefact in evaluated_artefacts:
                 ui.debug("  " + artefact)
                 if fsutils.is_any_newer_than(evaluated_prerequisites, artefact):
-                    ui.debug("going on because " + str(artefact) + " needs to be rebuilt")
+                    ui.debug(("going on because {!s}"
+                              "needs to be rebuilt").format(artefact))
                     should_run = True
                     break
 
@@ -144,7 +145,7 @@ class Target:
             evaluated_cmds = self.eval(cmds)
 
             for cmd in evaluated_cmds:
-                ui.debug("running " + str(cmd))
+                ui.debug("running {!s}".format(cmd))
                 shell.execute(cmd)
 
         os.chdir(root_dir)
