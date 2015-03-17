@@ -23,7 +23,7 @@ def main():
     if configuration.name != "__default":
         ui.bigstep("configuration", str(configurations.get_selected_configuration()))
 
-    if len(command_line.args.target) > 0:
+    if command_line.args.target:
         for target in command_line.args.target:
             targets.build(target)
     elif command_line.args.all:

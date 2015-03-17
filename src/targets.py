@@ -11,10 +11,12 @@ import configurations
 targets = {}
 _built_targets = []
 
+
 def add_target(target):
     ui.debug("adding target: " + str(target))
 
     targets[target.common_parameters.name] = target
+
 
 def build(name):
     configuration = configurations.get_selected_configuration()
@@ -30,13 +32,14 @@ def build(name):
         else:
             _built_targets.append(name)
 
-        if not name in targets:
+        if name not in targets:
             ui.fatal("target " + name + " not found")
 
         target = targets[name]
 
         if not target.is_visible(configuration):
-            ui.fatal("target " + name + " is not visible in " + str(configuration))
+            ui.fatal("target " + name + " is not visible in "
+                                      + str(configuration))
 
         evalueated_depends_on = variables.eval(
             target.common_parameters.module_name,
@@ -53,6 +56,7 @@ def build(name):
         target.after()
         target.copy_resources(toolchain)
 
+
 def build_all():
     ui.bigstep("building all targets", " ".join(targets))
 
@@ -64,6 +68,7 @@ def build_all():
             build(name)
         else:
             ui.bigstep("skip", name)
+
 
 class Target:
     def __init__(self, common_parameters):
@@ -77,11 +82,11 @@ class Target:
 
         comma_needed = True
 
-        if len(rb) > 0:
+        if rb:
             s += ", run before: " + rb
             comma_needed = True
 
-        if len(ra) > 0:
+        if ra:
             if comma_needed:
                 s += ", "
 
@@ -104,19 +109,18 @@ class Target:
         resources = self.eval(self.common_parameters.resources)
         for resource in resources:
             ui.step("copy", resource)
-            shell.execute("rsync --update -r '" + resource + "' '" + toolchain.build_dir() + "/'")
+            shell.execute("rsync --update -r '" + resource + "' '"
+                                                + toolchain.build_dir() + "/'")
 
         os.chdir(root_dir)
 
     def is_visible(self, configuration):
         evaluated_visible_in = self.eval(self.common_parameters.visible_in)
-        if len(evaluated_visible_in) > 0:
-            for visible_in in evaluated_visible_in:
-                if visible_in == configuration.name:
-                    return True
-            return False
-        else:
-            return True
+
+        if evaluated_visible_in:
+            return configuration.name in evaluated_visible_in
+
+        return True
 
     def __try_run(self, cmds):
         root_dir = os.getcwd()
@@ -128,7 +132,10 @@ class Target:
         should_run = True
         if len(evaluated_prerequisites) > 0 and len(evaluated_artefacts) > 0:
             should_run = False
-            ui.debug("checking prerequisites (" + str(evaluated_prerequisites) + ") for making " + str(evaluated_artefacts))
+
+            ui.debug("checking prerequisites ({!s}) for making {!s}"
+                     .format(evaluated_prerequisites, evaluated_artefacts))
+
             for artefact in evaluated_artefacts:
                 ui.debug("  " + artefact)
                 if fsutils.is_any_newer_than(evaluated_prerequisites, artefact):
