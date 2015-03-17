@@ -237,6 +237,11 @@ class CompileableTarget(Target):
                     done = False
                     thread.join(0.1)
 
+        while threads:
+            for thread in [thread in threads if not thread.isAlive()]:
+                thread.join(0.1)
+                threads.remove(thread)
+
         if self.error:
             ui.fatal("cannot build " + self.common_parameters.name)
 
