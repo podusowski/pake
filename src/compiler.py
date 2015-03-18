@@ -95,8 +95,8 @@ class Gnu:
         out = ""
         try:
             out = shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
-        except:
-            ui.fatal("can't finish request")
+        except Exception as e:
+            raise Exception("error while building dependency graph for {!s}, {!s}".format(in_filename, str(e)))
 
         for token in out[2:]:
             if token != "\\":
