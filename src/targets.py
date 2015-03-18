@@ -62,8 +62,7 @@ def build_all():
 
     configuration = configurations.get_selected_configuration()
 
-    for name in targets:
-        target = targets[name]
+    for name, target in targets.items():
         if target.is_visible(configuration):
             build(name)
         else:
