@@ -188,6 +188,7 @@ class CompileableTarget(Target):
                 )
             except Exception as e:
                 ui.debug("catched during compilation " + str(e))
+                self.error_reason = str(e)
                 self.error = True
 
     def build_objects(self, toolchain):
@@ -231,7 +232,7 @@ class CompileableTarget(Target):
                 threads.remove(thread)
 
         if self.error:
-            ui.fatal("cannot build " + self.common_parameters.name)
+            ui.fatal("cannot build {!s}, reason: {!s}".format(self.common_parameters.name, self.error_reason))
 
         ui.pop()
 
