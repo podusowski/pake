@@ -87,9 +87,9 @@ class Target:
 
         params = ','.join([ra, rb])
 
-        return '{name} ({params})'.format(name = self.common_parameters.name,
-                                          params = ' '.join([self.type_string(),
-                                                            params]))
+        return '{name} ({params})'.format(name=self.common_parameters.name,
+                                          params=' '.join([self.type_string(),
+                                                           params]))
 
     def before(self):
         self.__try_run(self.common_parameters.run_before)
@@ -104,8 +104,8 @@ class Target:
         for resource in self.eval(self.common_parameters.resources):
             ui.step("copy", resource)
             shell.execute("rsync --update -r '{resource}' '{build_dir}/'"
-                          .format(resource = resource,
-                                  build_dir= toolchain.build_dir()))
+                          .format(resource=resource,
+                                  build_dir=toolchain.build_dir()))
 
         os.chdir(root_dir)
 
@@ -155,6 +155,7 @@ class Target:
             self.common_parameters.module_name,
             variable)
 
+
 class Phony(Target):
     def __init__(self, common_parameters):
         Target.__init__(self, common_parameters)
@@ -165,6 +166,7 @@ class Phony(Target):
     def build(self, configuration):
         ui.debug("phony build")
 
+
 class CompileableTarget(Target):
     def __init__(self, common_parameters, cxx_parameters):
         Target.__init__(self, common_parameters)
@@ -173,7 +175,8 @@ class CompileableTarget(Target):
         self.cxx_parameters = cxx_parameters
         self.error = False
 
-    def __build_object(self, jobs_semaphore, toolchain, name, object_file, source, include_dirs, compiler_flags):
+    def __build_object(self, jobs_semaphore, toolchain, name, object_file,
+                       source, include_dirs, compiler_flags):
         with jobs_semaphore:
             if self.error:
                 return
@@ -206,7 +209,8 @@ class CompileableTarget(Target):
         limit_semaphore = threading.Semaphore(int(command_line.args.jobs))
 
         for source in evaluated_sources:
-            object_file = toolchain.object_filename(self.common_parameters.name, source)
+            object_file = toolchain.object_filename(self.common_parameters.name,
+                                                    source)
             object_files.append(object_file)
 
             thread = threading.Thread(
@@ -227,16 +231,18 @@ class CompileableTarget(Target):
             thread.start()
 
         while threads:
-            for thread in [thread for thread in threads if not thread.isAlive()]:
+            for thread in [t for t in threads if not t.isAlive()]:
                 thread.join(0.1)
                 threads.remove(thread)
 
         if self.error:
-            ui.fatal("cannot build {!s}, reason: {!s}".format(self.common_parameters.name, self.error_reason))
+            ui.fatal("cannot build {!s}, reason: {!s}"
+                     .format(self.common_parameters.name, self.error_reason))
 
         ui.pop()
 
         return object_files
+
 
 class Application(CompileableTarget):
     def __init__(self, common_parameters, cxx_parameters, link_with, library_dirs):
@@ -265,10 +271,10 @@ class Application(CompileableTarget):
 
         os.chdir(root_dir)
 
+
 class StaticLibrary(CompileableTarget):
     def __init__(self, common_parameters, cxx_parameters):
         CompileableTarget.__init__(self, common_parameters, cxx_parameters)
-
 
     def type_string(self):
         return "static_library"
@@ -287,5 +293,3 @@ class StaticLibrary(CompileableTarget):
             ui.bigstep("up to date", artefact)
 
         os.chdir(root_dir)
-
-
