@@ -13,7 +13,7 @@ _built_targets = []
 
 
 def add_target(target):
-    ui.debug("adding target: " + str(target))
+    ui.debug("adding target: {!s}".format(target))
 
     targets[target.common_parameters.name] = target
 
@@ -23,30 +23,30 @@ def build(name):
 
     fsutils.make_build_dir(configuration.name)
 
-    ui.debug("building " + name + " with configuration " + str(configuration))
+    ui.debug("building {} with configuration {!s}".format(name, configuration))
 
     with ui.ident:
         if name in _built_targets:
-            ui.debug(name + " already build, skipping")
+            ui.debug("{} already build, skipping".format(name))
             return
         else:
             _built_targets.append(name)
 
         if name not in targets:
-            ui.fatal("target " + name + " not found")
+            ui.fatal("target {} not found".format(name))
 
         target = targets[name]
 
         if not target.is_visible(configuration):
-            ui.fatal("target " + name + " is not visible in "
-                                      + str(configuration))
+            ui.fatal("target {} is not visible in {!s}"
+                     .format(name, configuration))
 
         evalueated_depends_on = variables.eval(
             target.common_parameters.module_name,
             target.common_parameters.depends_on)
 
         for dependency in evalueated_depends_on:
-            ui.debug(name + " depends on " + dependency)
+            ui.debug("{} depends on {}".format(name, dependency))
             build(dependency)
 
         toolchain = compiler.Gnu()
@@ -190,7 +190,7 @@ class CompileableTarget(Target):
                     compiler_flags
                 )
             except Exception as e:
-                ui.debug("catched during compilation " + str(e))
+                ui.debug("catched during compilation {!s}".format(e))
                 self.error_reason = str(e)
                 self.error = True
 
@@ -200,7 +200,7 @@ class CompileableTarget(Target):
         evaluated_include_dirs = self.eval(self.cxx_parameters.include_dirs)
         evaluated_compiler_flags = self.eval(self.cxx_parameters.compiler_flags)
 
-        ui.debug("building objects from " + str(evaluated_sources))
+        ui.debug("building objects from {!s}".format(evaluated_sources))
         ui.push()
 
         threads = []
