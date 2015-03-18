@@ -5,11 +5,11 @@
 for i in tests/*; do
     if [ -d $i ]; then
 
-        echo -e "${bg1}  running test $i  ${reset}"
+        echo -e "${header}running test $i  ${reset}"
 
         pushd $i > /dev/null
         if ./test.sh ; then
-            echo -e "${bg1}  test passed  ${reset}"
+            echo -e "${passed}  test passed  ${reset}"
         else
             echo -e "${bg1}  test failed  ${reset}"
             exit 1
