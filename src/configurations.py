@@ -41,11 +41,11 @@ def _create_default_configuration():
 class Configuration:
     def __init__(self):
         self.name = "__default"
-        self.compiler = [lexer.Token.make_literal("c++")]
-        self.compiler_flags = [lexer.Token.make_literal("-I.")]
-        self.linker_flags = [lexer.Token.make_literal("-L.")]
-        self.application_suffix = [lexer.Token.make_literal("")]
-        self.archiver = [lexer.Token.make_literal("ar")]
+        self.compiler = variables.make_simple_variable("c++")
+        self.compiler_flags = variables.make_simple_variable("-I.")
+        self.linker_flags = variables.make_simple_variable("-L.")
+        self.application_suffix = variables.make_simple_variable("")
+        self.archiver = variables.make_simple_variable("ar")
         self.export = []
 
     def __repr__(self):

@@ -33,12 +33,31 @@ def pollute_environment(current_module):
                     os.environ[env_short_name] = " ".join(evaluated)
                     ui.debug("  " + env_short_name + ": " + str(evaluated))
 
+
+def make_simple_variable(value):
+    return Variable(content=lexer.Token.make_literal(value))
+
+
+class Variable:
+    def __init__(self, module = None, name = None, content = None):
+        self.module = module
+        self.name = name
+
+        if content:
+            self.content = [content]
+        else:
+            self.content = []
+
+    def __str__(self):
+        return "${}.{} = {!s} ".format(self.module, self.name, self.content)
+
+
 def eval(current_module, variable):
-    ui.debug("evaluating " + str(variable) + " in context of module " + current_module)
+    ui.debug("evaluating {!s}, obsolete param current_module: {}".format(variable, current_module))
     ui.push()
 
     ret = []
-    for token in variable:
+    for token in variable.content:
         if token == lexer.Token.LITERAL:
             content = __eval_literal(current_module, token.content)
             ui.debug("  " + token.content + " = " + content)
@@ -64,9 +83,9 @@ def eval(current_module, variable):
             if not name in modules[module]:
                 ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
-            for value in modules[module][name]:
+            for value in modules[module][name].content:
                 if value.is_a(lexer.Token.VARIABLE):
-                    re = eval(module, [value])
+                    re = eval(module, Variable(content=value))
                     for v in re: ret.append(v)
                 else:
                     content = __eval_literal(module, value.content)
@@ -106,7 +125,7 @@ def __eval_literal(current_module, s):
             elif state == STATE_READING_NAME:
                 if c == "}":
                     ui.debug("variable: " + variable_name)
-                    evaluated_variable = eval(current_module, [lexer.Token(lexer.Token.VARIABLE, variable_name)])
+                    evaluated_variable = eval(current_module, Variable(content=lexer.Token(lexer.Token.VARIABLE, variable_name)))
                     ret += " ".join(evaluated_variable)
                     variable_name = '$'
                     state = STATE_READING
@@ -118,31 +137,37 @@ def __eval_literal(current_module, s):
         return ret
 
 def add_empty(module_name, name):
-    ui.debug("adding empty variable in module " + module_name + " called " + name)
-
     if not module_name in modules:
         modules[module_name] = {}
 
-    modules[module_name][name] = []
+    variable = Variable(name=name)
+    modules[module_name][name] = variable
+
+    ui.debug("adding variable: {!s}".format(variable))
 
 
 def add(module_name, name, value):
-    ui.debug("adding variable in module " + module_name + " called " + name + " with value of " + str(value))
+    assert isinstance(value, lexer.Token)
 
     if not module_name in modules:
         modules[module_name] = {}
 
-    modules[module_name][name] = [value]
+    variable = Variable(module_name, name, value)
+    modules[module_name][name] = variable
+
+    ui.debug("adding variable: {!s}".format(variable))
 
 def append(module_name, name, value):
-    ui.debug("appending variable in module " + module_name + " called " + name + " with value of " + str(value))
+    assert isinstance(value, lexer.Token)
 
     if not module_name in modules:
         modules[module_name] = {}
 
     if not name in modules[module_name]:
-        modules[module_name][name] = []
+        modules[module_name][name] = Variable(module_name, name)
 
-    modules[module_name][name].append(value)
-    ui.debug("  new value: " + str(modules[module_name][name]))
+    variable = modules[module_name][name]
+    variable.content.append(value)
+
+    ui.debug("setting variable: {!s}".format(variable))
 

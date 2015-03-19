@@ -6,6 +6,8 @@ import targets
 import variables
 import configurations
 
+from variables import Variable
+
 def parse(filename):
     Module(filename)
 
@@ -17,20 +19,20 @@ class CommonTargetParameters:
         self.root_path = root_path
         self.module_name = module_name
         self.name = name
-        self.artefacts = []
-        self.prerequisites = []
-        self.depends_on = []
-        self.run_before = []
-        self.run_after = []
-        self.resources = []
-        self.visible_in = []
+        self.artefacts = Variable()
+        self.prerequisites = Variable()
+        self.depends_on = Variable()
+        self.run_before = Variable()
+        self.run_after = Variable()
+        self.resources = Variable()
+        self.visible_in = Variable()
 
 class CxxParameters:
     def __init__(self):
-        self.sources = []
-        self.include_dirs = []
-        self.compiler_flags = []
-        self.built_targets = []
+        self.sources = Variable()
+        self.include_dirs = Variable()
+        self.compiler_flags = Variable()
+        self.built_targets = Variable()
 
 class Module:
     def __init__(self, filename):
@@ -84,16 +86,16 @@ class Module:
 
     # (something1 something2)
     def __parse_list(self, it):
-        ret = []
+        ret = variables.Variable(None, None)
         token = it.next()
         if token == lexer.Token.OPEN_PARENTHESIS:
 
             while True:
                 token = it.next()
                 if token == lexer.Token.LITERAL:
-                    ret.append(token)
+                    ret.content.append(token)
                 elif token == lexer.Token.VARIABLE:
-                    ret.append(token)
+                    ret.content.append(token)
                 elif token == lexer.Token.CLOSE_PARENTHESIS:
                     break
                 else:
@@ -170,8 +172,8 @@ class Module:
         return False
 
     def __parse_application_target(self, target_name, it):
-        link_with = []
-        library_dirs = []
+        link_with = variables.Variable()
+        library_dirs = variables.Variable()
 
         common_parameters = CommonTargetParameters(
             os.path.dirname(self.filename),
