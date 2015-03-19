@@ -84,13 +84,7 @@ def eval(current_module, variable):
                 ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
             for value in modules[module][name].content:
-                if value.is_a(lexer.Token.VARIABLE):
-                    re = eval(module, Variable(content=value))
-                    for v in re: ret.append(v)
-                else:
-                    content = __eval_literal(module, value.content)
-                    ret.append(content)
-                    ui.debug("    = " + str(content))
+                ret += eval(module, Variable(content=value))
         else:
             ui.parse_error(token)
 
