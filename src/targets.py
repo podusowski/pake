@@ -7,6 +7,7 @@ import compiler
 import shell
 import variables
 import configurations
+import command_line
 
 targets = {}
 _built_targets = []
@@ -204,7 +205,6 @@ class CompileableTarget(Target):
 
         threads = []
 
-        import command_line
         limit_semaphore = threading.Semaphore(int(command_line.args.jobs))
 
         for source in evaluated_sources:

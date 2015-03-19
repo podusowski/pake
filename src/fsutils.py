@@ -5,20 +5,24 @@ import shell
 
 BUILD_ROOT = os.path.normpath(os.getcwd() + "/__build")
 
+
 def make_build_dir(configuration_name):
     shell.execute("mkdir -p " + build_dir(configuration_name))
+
 
 def build_dir(configuration_name):
     return os.path.normpath(BUILD_ROOT + "/" + configuration_name)
 
+
 def is_newer_than(prerequisite, target):
     if os.path.exists(target):
         ret = get_mtime(prerequisite) > get_mtime(target)
-        ui.debug("is " + prerequisite + " newer than " + target + " = " + str(ret))
+        ui.debug("is {} newer than {} = {!s}".format(prerequisite, target, ret))
         return ret
     else:
         ui.debug(target + " doesn't exist, treating like older")
         return True
+
 
 def is_any_newer_than(prerequisites, target):
     for prerequisite in prerequisites:
@@ -26,19 +30,20 @@ def is_any_newer_than(prerequisites, target):
             return True
     return False
 
+
 def get_mtime(filename):
     return os.path.getmtime(filename)
 
-def _find_pake_files(path = os.getcwd()):
+
+def _find_pake_files(path=os.getcwd()):
     ret = []
-    for (dirpath, dirnames, filenames) in os.walk(path):
+    for dirpath, dirnames, filenames in os.walk(path):
         for f in filenames:
             if not dirpath.startswith(BUILD_ROOT):
                 filename = dirpath + "/" + f
-                (base, ext) = os.path.splitext(filename)
+                base, ext = os.path.splitext(filename)
                 if ext == ".pake":
                     ret.append(filename)
     return ret
 
 pake_files = _find_pake_files()
-
