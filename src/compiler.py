@@ -89,24 +89,16 @@ class Gnu:
 
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         ui.debug("scanning includes for " + in_filename)
-        ret = []
-        out = ""
         try:
             out = shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
         except Exception as e:
             raise Exception("error while building dependency graph for {!s}, {!s}".format(in_filename, str(e)))
 
-        for token in out[2:]:
-            if token != "\\":
-                ret.append(token)
-
-        return ret
+        return [token for token in out[2:] if not token == "\\"]
 
     def __prepare_linker_flags(self, link_with):
-        ret = "-L " + configurations.build_dir() + " "
-        for lib in link_with:
-            ret = ret + " -l" + lib
-        return ret
+        libs_str = "".join(" -l" + lib for lib in link_with)
+        return " ".join(["-L " + configurations.build_dir(), libs_str])
 
     def __prepare_compiler_flags(self, include_dirs, compiler_flags):
         ret = configurations.compiler_flags() + " "
