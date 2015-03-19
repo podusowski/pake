@@ -43,9 +43,7 @@ class Gnu:
             ui.debug("  with libs: " + str(link_with))
             ui.debug("  lib dirs: " + str(library_dirs))
 
-            parameters = ""
-            for directory in library_dirs:
-                parameters += "-L" + directory + " "
+            parameters = " ".join("-L " + lib_dir for lib_dir in library_dirs)
 
             ui.bigstep("linking", out_filename)
             try:
