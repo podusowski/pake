@@ -26,7 +26,7 @@ def is_newer_than(prerequisite, target):
 
 
 def is_any_newer_than(prerequisites, target):
-    return any(lambda pre: is_newer_than(pre, target), prerequisites)
+    return any(map(lambda pre: is_newer_than(pre, target), prerequisites))
 
 
 def get_mtime(filename):
