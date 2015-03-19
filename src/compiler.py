@@ -105,18 +105,13 @@ class Gnu:
         return " ".join(["-L " + configurations.build_dir(), libs_str])
 
     def __prepare_compiler_flags(self, include_dirs, compiler_flags):
-        return (" ".join([configurations.compiler_flags(),
-                          " ".join(compiler_flags),
-                          self.__prepare_include_dirs_parameters(include_dirs)])
-                + " ")
+        return " ".join([configurations.compiler_flags(),
+                         " ".join(compiler_flags),
+                         self.__prepare_include_dirs_parameters(include_dirs)])
 
     def __prepare_include_dirs_parameters(self, include_dirs):
-        ret = ""
-        for include_dir in include_dirs:
-            ret += "-I" + include_dir + " "
-
+        ret = " ".join("-I" + include_dir for include_dir in include_dirs)
         ui.debug("include parameters: " + ret)
-
         return ret
 
     def __are_libs_newer_than_target(self, link_with, target):
@@ -128,5 +123,3 @@ class Gnu:
                 if fsutils.is_newer_than(filename, target):
                     return True
         return False
-
-
