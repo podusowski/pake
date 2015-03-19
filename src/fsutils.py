@@ -47,7 +47,7 @@ def __filter_pake_files(dirpath, filenames):
 
 
 def __flatten(nested_list):
-        return list(itertools.chain(*nested_list))
+    return list(itertools.chain(*nested_list))
 
 
 def _find_pake_files(path=os.getcwd()):
