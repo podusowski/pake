@@ -11,12 +11,14 @@ def export_special_variables(configuration):
 
     with ui.ident:
         add_empty("__configuration", "$__null")
-        add("__configuration", "$__name", lexer.Token.make_literal(configuration.name))
+
+        add("__configuration", "$__name", configuration.name)
+
         for (value, name) in configuration.export:
             add("__configuration", name.content, value)
 
         for module in modules:
-            add(module, "$__build", lexer.Token(lexer.Token.LITERAL, fsutils.build_dir(configuration.name)))
+            add(module, "$__build", fsutils.build_dir(configuration.name))
 
 def pollute_environment(current_module):
     ui.debug("polluting environment")
@@ -147,8 +149,6 @@ def add_empty(module_name, name):
 
 
 def add(module_name, name, value):
-    assert isinstance(value, lexer.Token)
-
     if not module_name in modules:
         modules[module_name] = {}
 
@@ -158,8 +158,6 @@ def add(module_name, name, value):
     ui.debug("adding variable: {!s}".format(variable))
 
 def append(module_name, name, value):
-    assert isinstance(value, lexer.Token)
-
     if not module_name in modules:
         modules[module_name] = {}
 
