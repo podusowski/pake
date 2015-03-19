@@ -40,6 +40,91 @@ def make_simple_variable(value):
     return Variable(content=value)
 
 
+class Literal:
+    def __init__(self, module, content):
+        self.module = module
+        self.content = content
+
+    def __str__(self):
+        return self.content
+
+    def eval(self):
+        ui.debug("evaluating literal: " + s)
+
+        ret = ""
+
+        STATE_READING = 1
+        STATE_WAITING_FOR_PARENTHESIS = 2
+        STATE_READING_NAME = 3
+
+        variable_name = '$'
+        state = STATE_READING
+
+        for c in s:
+            if state == STATE_READING:
+                if c == "$":
+                    state = STATE_WAITING_FOR_PARENTHESIS
+                else:
+                    ret += c
+            elif state == STATE_WAITING_FOR_PARENTHESIS:
+                if c == "{":
+                    state = STATE_READING_NAME
+                else:
+                    ui.parse_error(msg="expecting { after $")
+            elif state == STATE_READING_NAME:
+                if c == "}":
+                    ui.debug("variable: " + variable_name)
+
+                    variable = ReferenceToVariable(self.module, variable_name)
+                    ret += " ".join(variable.eval())
+
+                    variable_name = '$'
+                    state = STATE_READING
+                else:
+                    variable_name += c
+            elif state == STATE_READING_NAME:
+                variable_name = variable_name + c
+
+        return [ret]
+
+
+class ReferenceToVariable:
+    def __init__(self, module, name):
+        self.module = module
+        self.name = name
+
+    def __str__(self):
+        return "${}.{}".format(self.module, self.name)
+
+    def eval(self):
+        ui.debug("evaluating {!s}".format(self))
+
+        parts = self.name.split(".")
+
+        if len(parts) == 1:
+            self.module = current_module
+            self.name = parts[0]
+        elif len(parts) == 2:
+            self.module = parts[0][1:] # lose the $
+            self.name = "$" + parts[1]
+
+        global modules
+
+        if not module in modules:
+            ui.parse_error(msg="no such module: " + module)
+
+        # TODO: make some comment about __configuration variables
+        if not name in modules[module]:
+            ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
+
+        ret = []
+
+        for value in modules[module][name]:
+            ret += value.eval()
+
+        return ret
+
+
 class Variable:
     def __init__(self, module = None, name = None, content = None):
         self.module = module
@@ -52,6 +137,14 @@ class Variable:
 
     def __str__(self):
         return "${}.{} = {!s} ".format(self.module, self.name, self.content)
+
+    def eval(self):
+        el = []
+        for el in self.content:
+            if isinstance(el, str):
+                ret += [el]
+            else:
+                ret += el.eval()
 
 
 def eval(current_module, variable):
