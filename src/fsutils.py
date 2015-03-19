@@ -16,7 +16,7 @@ def build_dir(configuration_name):
 
 
 def is_newer_than(prerequisite, target):
-    if os.path.exists(target):
+    if os.path.isfile(target):
         ret = get_mtime(prerequisite) > get_mtime(target)
         ui.debug("is {} newer than {} = {!s}".format(prerequisite, target, ret))
         return ret
