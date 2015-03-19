@@ -105,11 +105,10 @@ class Gnu:
         return " ".join(["-L " + configurations.build_dir(), libs_str])
 
     def __prepare_compiler_flags(self, include_dirs, compiler_flags):
-        ret = configurations.compiler_flags() + " "
-        for flag in compiler_flags:
-            ret += flag + " "
-        ret += self.__prepare_include_dirs_parameters(include_dirs) + " "
-        return ret
+        return (" ".join([configurations.compiler_flags(),
+                          " ".join(compiler_flags),
+                          self.__prepare_include_dirs_parameters(include_dirs)])
+                + " ")
 
     def __prepare_include_dirs_parameters(self, include_dirs):
         ret = ""
