@@ -35,7 +35,7 @@ def pollute_environment(current_module):
 
 
 def make_simple_variable(value):
-    return Variable(content=lexer.Token.make_literal(value))
+    return Variable(content=value)
 
 
 class Variable:
@@ -58,7 +58,13 @@ def eval(current_module, variable):
 
     ret = []
     for token in variable.content:
-        if token == lexer.Token.LITERAL:
+        # TODO: this will eventualy be an polymorphic object
+        if isinstance(token, str):
+            content = __eval_literal(variable.module, token)
+            ui.debug("  " + token + " = " + content)
+            ret.append(content)
+
+        elif token == lexer.Token.LITERAL:
             content = __eval_literal(current_module, token.content)
             ui.debug("  " + token.content + " = " + content)
             ret.append(content)
