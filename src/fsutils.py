@@ -35,14 +35,17 @@ def get_mtime(filename):
     return os.path.getmtime(filename)
 
 
+def __is_pake_file(filename):
+    return os.path.splitext(filename)[1] == ".pake"
+
+
 def _find_pake_files(path=os.getcwd()):
     ret = []
-    for dirpath, dirnames, filenames in os.walk(path):
+    for dirpath, _, filenames in os.walk(path):
         for f in filenames:
             if not dirpath.startswith(BUILD_ROOT):
                 filename = dirpath + "/" + f
-                base, ext = os.path.splitext(filename)
-                if ext == ".pake":
+                if __is_pake_file(filename):
                     ret.append(filename)
     return ret
 
