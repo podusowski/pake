@@ -44,7 +44,7 @@ def _find_pake_files(path=os.getcwd()):
     for dirpath, _, filenames in os.walk(path):
         for f in filenames:
             if not dirpath.startswith(BUILD_ROOT):
-                filename = dirpath + "/" + f
+                filename = os.path.join(dirpath, f)
                 if __is_pake_file(filename):
                     ret.append(filename)
     return ret
