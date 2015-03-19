@@ -92,7 +92,8 @@ class Gnu:
         try:
             out = shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
         except Exception as e:
-            raise Exception("error while building dependency graph for {!s}, {!s}".format(in_filename, str(e)))
+            raise Exception("error while building dependency graph for"
+                            "{!s}, {!s}".format(in_filename, e))
 
         return [token for token in out[2:] if not token == "\\"]
 
