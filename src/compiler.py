@@ -116,10 +116,11 @@ class Gnu:
 
     def __are_libs_newer_than_target(self, link_with, target):
         # check if the library is from our source tree
-        for lib in link_with:
-            filename = self.static_library_filename(lib)
+        files = (self.static_library_filename(lib) for lib in link_with)
+
+        def is_newer_than_target(filename):
             if os.path.exists(filename):
                 # TODO: proper appname
-                if fsutils.is_newer_than(filename, target):
-                    return True
-        return False
+                return fsutils.is_newer_than(filename, target)
+
+        return any(map(is_newer_than_target, files))
