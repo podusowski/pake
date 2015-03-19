@@ -4,22 +4,22 @@ import marshal
 import ui
 import fsutils
 import shell
-import variables
 import configurations
 import command_line
 
-# TODO: try to drop it
-import lexer
 
 class Gnu:
-    def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
+    def build_object(self, target_name, out_filename, in_filename, include_dirs,
+                     compiler_flags):
         ui.debug("building object " + out_filename)
 
         with ui.ident:
-            prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
+            prerequisites = self.__fetch_includes(target_name, in_filename,
+                                                  include_dirs, compiler_flags)
             prerequisites.append(in_filename)
 
-            ui.debug("appending prerequisites from pake modules: " + str(fsutils.pake_files))
+            ui.debug("appending prerequisites from pake modules: {!s}"
+                     .format(fsutils.pake_files))
             for module_filename in fsutils.pake_files:
                 prerequisites.append(module_filename)
 
@@ -90,7 +90,10 @@ class Gnu:
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         ui.debug("scanning includes for " + in_filename)
         try:
-            out = shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
+            flags = self.__prepare_compiler_flags(include_dirs, compiler_flags)
+            out = shell.execute(" ".join([configurations.compiler(), flags, "-M",
+                                          in_filename]),
+                                capture_output = True).split()
         except Exception as e:
             raise Exception("error while building dependency graph for"
                             "{!s}, {!s}".format(in_filename, e))
