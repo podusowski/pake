@@ -1,4 +1,5 @@
 import os
+import itertools
 
 import ui
 import shell
@@ -39,14 +40,18 @@ def __is_pake_file(filename):
     return os.path.splitext(filename)[1] == ".pake"
 
 
+def __filter_pake_files(dirpath, filenames):
+    return list(filter(__is_pake_file,
+                       [os.path.join(dirpath, f) for f in filenames
+                        if not dirpath.startswith(BUILD_ROOT)]))
+
+
+def __flatten(nested_list):
+        return list(itertools.chain(*nested_list))
+
+
 def _find_pake_files(path=os.getcwd()):
-    ret = []
-    for dirpath, _, filenames in os.walk(path):
-        for f in filenames:
-            if not dirpath.startswith(BUILD_ROOT):
-                filename = os.path.join(dirpath, f)
-                if __is_pake_file(filename):
-                    ret.append(filename)
-    return ret
+    return __flatten(__filter_pake_files(dirpath, filenames)
+                     for (dirpath, _, filenames) in os.walk(path))
 
 pake_files = _find_pake_files()
