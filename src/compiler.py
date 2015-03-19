@@ -47,7 +47,12 @@ class Gnu:
 
             ui.bigstep("linking", out_filename)
             try:
-                shell.execute(configurations.compiler() + " " + configurations.linker_flags() + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
+                shell.execute(" ".join([configurations.compiler(),
+                                        configurations.linker_flags(),
+                                        "-o", out_filename,
+                                        " ".join(in_filenames),
+                                        self.__prepare_linker_flags(link_with),
+                                        parameters]))
             except Exception as e:
                 ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
         else:
