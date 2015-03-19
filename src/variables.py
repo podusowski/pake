@@ -33,12 +33,12 @@ def pollute_environment(current_module):
                     os.environ[env_short_name] = " ".join(evaluated)
                     ui.debug("  " + env_short_name + ": " + str(evaluated))
 
-def eval(current_module, l):
-    ui.debug("evaluating " + str(l) + " in context of module " + current_module)
+def eval(current_module, variable):
+    ui.debug("evaluating " + str(variable) + " in context of module " + current_module)
     ui.push()
 
     ret = []
-    for token in l:
+    for token in variable:
         if token == lexer.Token.LITERAL:
             content = __eval_literal(current_module, token.content)
             ui.debug("  " + token.content + " = " + content)
