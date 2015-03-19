@@ -41,9 +41,9 @@ def __is_pake_file(filename):
 
 
 def __filter_pake_files(dirpath, filenames):
-    return list(filter(__is_pake_file,
-                       [os.path.join(dirpath, f) for f in filenames
-                        if not dirpath.startswith(BUILD_ROOT)]))
+    return filter(__is_pake_file,
+                  [os.path.join(dirpath, f) for f in filenames
+                   if not dirpath.startswith(BUILD_ROOT)])
 
 
 def __flatten(nested_list):
