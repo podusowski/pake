@@ -62,7 +62,15 @@ class Module:
         (root, ext) = os.path.splitext(base)
         return root
 
+
     def __parse_set_or_append(self, it, append):
+
+        def token_to_variable(token):
+            if token == lexer.Token.LITERAL:
+                return variables.Literal(self.name, token.content)
+            elif token == lexer.Token.VARIABLE:
+                return variables.ReferenceToVariable(self.name, token.content)
+
         token = it.next()
         if token == lexer.Token.VARIABLE:
             variable_name = token.content
@@ -74,9 +82,9 @@ class Module:
             token = it.next()
             if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
                 if append or second_add:
-                    variables.append(self.name, variable_name, token)
+                    variables.append(self.name, variable_name, token_to_variable(token))
                 else:
-                    variables.add(self.name, variable_name, token)
+                    variables.add(self.name, variable_name, token_to_variable(token))
                     second_add = True
 
             elif token == lexer.Token.NEWLINE:
