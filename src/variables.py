@@ -26,7 +26,7 @@ def pollute_environment(current_module):
     with ui.ident:
         for module in modules:
             for (name, variable) in modules[module].iteritems():
-                evaluated = eval(module, variable)
+                evaluated = variable.eval()
                 env_name = module + "_" + name[1:]
                 os.environ[env_name] = " ".join(evaluated)
                 ui.debug("  " + env_name + ": " + str(evaluated))
@@ -49,10 +49,11 @@ class Literal:
         return self.content
 
     def eval(self):
-        s = self.content
-        ui.debug("evaluating literal: " + s)
+        ui.debug("evaluating {!s}: ".format(self))
 
-        ret = ""
+        s = self.content
+
+        ret = []
 
         STATE_READING = 1
         STATE_WAITING_FOR_PARENTHESIS = 2
@@ -66,7 +67,7 @@ class Literal:
                 if c == "$":
                     state = STATE_WAITING_FOR_PARENTHESIS
                 else:
-                    ret += c
+                    ret.append(c)
             elif state == STATE_WAITING_FOR_PARENTHESIS:
                 if c == "{":
                     state = STATE_READING_NAME
@@ -77,7 +78,7 @@ class Literal:
                     ui.debug("variable: " + variable_name)
 
                     variable = ReferenceToVariable(self.module, variable_name)
-                    ret += " ".join(variable.eval())
+                    ret.append(" ".join(variable.eval()))
 
                     variable_name = '$'
                     state = STATE_READING
@@ -86,7 +87,7 @@ class Literal:
             elif state == STATE_READING_NAME:
                 variable_name = variable_name + c
 
-        return [ret]
+        return ["".join(ret)]
 
 
 class ReferenceToVariable:
