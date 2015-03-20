@@ -239,14 +239,8 @@ class Application(CompileableTarget):
 
         object_files = self.build_objects(toolchain)
 
-        evaluated_link_with = self.eval(self.link_with)
-        evaluated_library_dirs = self.eval(self.library_dirs)
-
-        toolchain.link_application(
-            toolchain.application_filename(self.common_parameters.name),
-            object_files,
-            evaluated_link_with,
-            evaluated_library_dirs)
+        toolchain.link_application(toolchain.application_filename(self.common_parameters.name),
+                                   object_files, self.link_with.eval(), self.library_dirs.eval())
 
         os.chdir(root_dir)
 
