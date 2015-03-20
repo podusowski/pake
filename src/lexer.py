@@ -59,10 +59,6 @@ class Token:
     MULTILINE_LITERAL = 6
     COLON = 7
 
-    @staticmethod
-    def make_literal(content):
-        return Token(Token.LITERAL, content)
-
     def __init__(self, token_type, content, filename=None, line=None, col=None):
         self.token_type = token_type
         self.content = content
