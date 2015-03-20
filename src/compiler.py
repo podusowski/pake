@@ -20,10 +20,10 @@ class Gnu:
 
             ui.debug("appending prerequisites from pake modules: {!s}"
                      .format(fsutils.pake_files))
-            for module_filename in fsutils.pake_files:
-                prerequisites.append(module_filename)
 
-            ui.debug("prerequisites: " + str(prerequisites))
+            prerequisites.extend(fsutils.pake_files)
+
+            ui.debug("prerequisites: {!r}".format(prerequisites))
 
             if fsutils.is_any_newer_than(prerequisites, out_filename):
                 shell.execute("mkdir -p " + os.path.dirname(out_filename))
@@ -98,7 +98,7 @@ class Gnu:
             flags = self.__prepare_compiler_flags(include_dirs, compiler_flags)
             out = shell.execute(" ".join([configurations.compiler(), flags, "-M",
                                           in_filename]),
-                                capture_output = True).split()
+                                capture_output=True).split()
         except Exception as e:
             raise Exception("error while building dependency graph for"
                             "{!s}, {!s}".format(in_filename, e))
