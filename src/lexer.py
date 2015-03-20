@@ -40,6 +40,17 @@ class FileReader:
     def eof(self):
         return self.position >= len(self.buf) or self.position < 0
 
+
+class FileLocation:
+    def __init__(self, filename, line, column):
+        self.filename = filename
+        self.line = line
+        self.column = column
+
+    def __str__(self):
+        return "{}:{!s}:{!s}".format(self.filename, self.line, self.column)
+
+
 class Token:
     OPEN_PARENTHESIS = 1
     CLOSE_PARENTHESIS = 2
@@ -54,13 +65,15 @@ class Token:
     def make_literal(content):
         return Token(Token.LITERAL, content)
 
-    def __init__(self, token_type, content, filename = None, line = None, col = None):
+    def __init__(self, token_type, content, filename=None, line=None, col=None):
         self.token_type = token_type
         self.content = content
 
         self.filename = filename
         self.line = line
         self.col = col
+
+        self.file_location = FileLocation(filename, line, col)
 
     def __repr__(self):
         if self.is_a(Token.LITERAL):
@@ -71,7 +84,7 @@ class Token:
             return self.content
 
     def location_str(self):
-        return str(self.filename) + ":" + str(self.line) + ":" + str(self.col)
+        return str(self.file_location)
 
     def is_a(self, token_type):
         return self.token_type == token_type
