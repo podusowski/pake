@@ -28,7 +28,10 @@ def application_suffix():
     return get_selected_configuration().application_suffix.eval_to_string()
 
 def get_selected_configuration():
-    return configurations[command_line.args.configuration]
+    try:
+        return configurations[command_line.args.configuration]
+    except:
+        ui.fatal("no such configuration: {}".format(command_line.args.configuration))
 
 def add_configuration(configuration):
     ui.debug("adding configuration: " + str(configuration))
@@ -52,4 +55,3 @@ class Configuration:
         return self.name
 
 _create_default_configuration()
-

@@ -14,4 +14,3 @@ def _parse_command_line():
     return args
 
 args = _parse_command_line()
-
