@@ -14,8 +14,8 @@ def export_special_variables(configuration):
 
         add("__configuration", "$__name", configuration.name)
 
-        for (value, name) in configuration.export:
-            add("__configuration", "".join(name.eval()), value)
+        for variable in configuration.export:
+            add("__configuration", variable.name, variable)
 
         for module in modules:
             add(module, "$__build", fsutils.build_dir(configuration.name))

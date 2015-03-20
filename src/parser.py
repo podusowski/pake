@@ -53,7 +53,7 @@ class Module:
             variables.add(
                 self.name,
                 "$__path",
-                lexer.Token.make_literal(os.path.dirname(filename)))
+                os.path.dirname(filename))
 
             variables.add_empty(
                 self.name,
@@ -123,13 +123,13 @@ class Module:
                 token = it.next()
 
                 if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
-                    first = self._token_to_variable(token)
+                    value = self._token_to_variable(token)
                     token = it.next()
                     if token == lexer.Token.COLON:
                         token = it.next()
                         if token == lexer.Token.VARIABLE:
-                            second = self._token_to_variable(token)
-                            ret.append((first, second))
+                            variable = variables.Variable(self.name, token.content, value)
+                            ret.append(variable)
                         else:
                             ui.parse_error(token, msg="expected variable")
                     else:
