@@ -73,10 +73,10 @@ def fatal(message):
         sys.stdout.flush()
         sys.exit(1)
 
-def parse_error(token = None, msg = None):
-    if token != None:
+def parse_error(token=None, msg=None):
+    if token is not None:
         s = token.location_str()
-        if msg != None:
+        if msg is not None:
             s += ": " + msg
         else:
             s += ": unexpected " + str(token)
@@ -84,11 +84,9 @@ def parse_error(token = None, msg = None):
     else:
         fatal(msg)
 
-def debug(s, env = None):
+def debug(s, env=None):
     if "DEBUG" in os.environ:
         with _lock:
-            if env == None or env in os.environ:
+            if env is None or env in os.environ:
                 print_depth_prefix()
                 print(GRAY + s + RESET)
-
-
