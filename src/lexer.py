@@ -136,7 +136,6 @@ class Tokenizer:
         data = ''
 
         if self.__try_to_read_token(buf, '"""'):
-            ui.debug("reading multine", "TOKENIZER")
             while True:
                 if buf.eof():
                     raise Exception("parse error")
@@ -151,7 +150,6 @@ class Tokenizer:
 
                 buf.rewind()
         else:
-            ui.debug("no multine", "TOKENIZER")
             buf.seek(pos)
 
         return False
@@ -260,13 +258,13 @@ class Tokenizer:
 
     def __tokenize(self, buf):
         while not buf.eof():
-            ret = any(self.__try_tokenize_comment(buf),
-                      self.__try_tokenize_slash_newline(buf),
-                      self.__try_tokenize_simple_chars(buf),
-                      self.__try_tokenize_quoted_literal(buf),
-                      self.__try_tokenize_variable_or_literal(buf),
-                      self.__try_tokenize_whitespace(buf),
-                      self.__try_tokenize_multiline_literal(buf))
+            ret = any([self.__try_tokenize_comment(buf),
+                       self.__try_tokenize_slash_newline(buf),
+                       self.__try_tokenize_simple_chars(buf),
+                       self.__try_tokenize_quoted_literal(buf),
+                       self.__try_tokenize_variable_or_literal(buf),
+                       self.__try_tokenize_whitespace(buf),
+                       self.__try_tokenize_multiline_literal(buf)])
 
             if not ret:
                 ui.parse_error(msg="unexpected character: " + str(buf.value()))
