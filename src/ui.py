@@ -6,6 +6,7 @@ RESET = '\033[0m'
 BOLD = '\033[1m'
 GRAY = '\033[90m'
 RED = '\033[31m'
+BOLD_YELLOW = '\033[1;33m'
 BOLD_RED = '\033[1;31m'
 BOLD_BLUE = "\033[34;1m"
 
@@ -72,8 +73,12 @@ def bigstep(tool, parameter):
     _fancy_print(tool, BOLD_BLUE, parameter)
 
 
+def warning(message):
+    _fancy_print("warning:", BOLD_YELLOW, message)
+
+
 def fatal(message):
-    _fancy_print("fatal: ", BOLD_RED, message)
+    _fancy_print("fatal:", BOLD_RED, message)
     sys.exit(1)
 
 

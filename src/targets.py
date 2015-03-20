@@ -155,6 +155,15 @@ class Phony(Target):
         return "phony"
 
     def build(self, configuration):
+        evaluated_artefacts = self.common_parameters.artefacts.eval()
+        evaluated_prerequisites = self.common_parameters.prerequisites.eval()
+
+        if not evaluated_artefacts or not evaluated_prerequisites:
+            ui.warning(("target {} has no artifacts or prerequisites defined, "
+                        "this means, whatever is defined in run_before or run_after "
+                        "will be always executed")
+                       .format(self.common_parameters.name))
+
         ui.debug("phony build")
 
 
