@@ -31,9 +31,9 @@ ident = _Ident()
 def _fancy_print(base_text, color="", additional_text=""):
     with _lock:
         if sys.stdout.isatty():
-            print(color + base_text + RESET + " " + additional_text)
+            print("{}{}{} {}".format(color, base_text, RESET, additional_text))
         else:
-            print(base_text + " " + additional_text)
+            print("{} {}".format(base_text, additional_text))
         sys.stdout.flush()
 
 
