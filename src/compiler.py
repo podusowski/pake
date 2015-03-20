@@ -54,7 +54,7 @@ class Gnu:
                                         self.__prepare_linker_flags(link_with),
                                         parameters]))
             except Exception as e:
-                ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
+                ui.fatal("cannot link {}, reason: {!s}".format(out_filename, e))
         else:
             ui.bigstep("up to date", out_filename)
 
