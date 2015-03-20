@@ -39,6 +39,9 @@ def pollute_environment(current_module):
 def make_simple_variable(value):
     return Variable(content=value)
 
+def eval_literal_to_string(literal):
+    return " ".join(literal.eval())
+
 
 class Literal:
     def __init__(self, module, content):
@@ -89,6 +92,8 @@ class Literal:
 
         return ["".join(ret)]
 
+    eval_to_string = eval_literal_to_string
+
 
 class ReferenceToVariable:
     def __init__(self, module, name):
@@ -122,6 +127,8 @@ class ReferenceToVariable:
 
         return modules[self.module][self.name].eval()
 
+    eval_to_string = eval_literal_to_string
+
 
 class Variable:
     def __init__(self, module = None, name = None, content = None):
@@ -145,6 +152,8 @@ class Variable:
                 ret += el.eval()
 
         return ret
+
+    eval_to_string = eval_literal_to_string
 
 
 def eval(current_module, variable):

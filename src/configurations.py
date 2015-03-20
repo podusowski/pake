@@ -10,22 +10,22 @@ def build_dir():
     return fsutils.build_dir(get_selected_configuration().name)
 
 def application_suffix():
-    return " ".join(variables.eval("", get_selected_configuration().application_suffix))
+    return get_selected_configuration().application_suffix.eval_to_string()
 
 def compiler():
-    return " ".join(variables.eval("", get_selected_configuration().compiler))
+    return get_selected_configuration().compiler.eval_to_string()
 
 def compiler_flags():
-    return " ".join(variables.eval("", get_selected_configuration().compiler_flags))
+    return get_selected_configuration().compiler_flags.eval_to_string()
 
 def linker_flags():
-    return " ".join(variables.eval("", get_selected_configuration().linker_flags))
+    return get_selected_configuration().linker_flags.eval_to_string()
 
 def archiver():
-    return " ".join(variables.eval("", get_selected_configuration().archiver))
+    return get_selected_configuration().archiver.eval_to_string()
 
 def application_suffix():
-    return " ".join(variables.eval("", get_selected_configuration().application_suffix))
+    return get_selected_configuration().application_suffix.eval_to_string()
 
 def get_selected_configuration():
     return configurations[command_line.args.configuration]
