@@ -44,6 +44,7 @@ class Token:
     OPEN_PARENTHESIS = 1
     CLOSE_PARENTHESIS = 2
     LITERAL = 3
+    QUOTED_LITERAL = 8
     VARIABLE = 4
     NEWLINE = 5
     MULTILINE_LITERAL = 6
@@ -230,7 +231,7 @@ class Tokenizer:
                     raise Exception("parse error")
 
                 if self.__try_to_read_token(buf, '"'):
-                    self.__add_token(Token.LITERAL, data, buf.line_number)
+                    self.__add_token(Token.QUOTED_LITERAL, data, buf.line_number)
                     return True
                 else:
                     char = buf.value()

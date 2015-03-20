@@ -61,9 +61,13 @@ class Module:
 
     def _token_to_variable(self, token):
         if token == lexer.Token.LITERAL:
-            return variables.Literal(self.name, token.content)
+            return token.content
         elif token == lexer.Token.VARIABLE:
             return variables.ReferenceToVariable(self.name, token.content)
+        elif token == lexer.Token.QUOTED_LITERAL:
+            return variables.Literal(self.name, token.content)
+
+        return None
 
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
@@ -80,11 +84,14 @@ class Module:
         second_add = False
         while True:
             token = it.next()
-            if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
+
+            variable = self._token_to_variable(token)
+
+            if variable:
                 if append or second_add:
-                    variables.append(self.name, variable_name, self._token_to_variable(token))
+                    variables.append(self.name, variable_name, variable)
                 else:
-                    variables.add(self.name, variable_name, self._token_to_variable(token))
+                    variables.add(self.name, variable_name, variable)
                     second_add = True
 
             elif token == lexer.Token.NEWLINE:
@@ -100,10 +107,11 @@ class Module:
 
             while True:
                 token = it.next()
-                if token == lexer.Token.LITERAL:
-                    ret.content.append(variables.Literal(module=self.name, content=token.content))
-                elif token == lexer.Token.VARIABLE:
-                    ret.content.append(variables.ReferenceToVariable(module=self.name, name=token.content))
+
+                variable = self._token_to_variable(token)
+
+                if variable:
+                    ret.content.append(variable)
                 elif token == lexer.Token.CLOSE_PARENTHESIS:
                     break
                 else:

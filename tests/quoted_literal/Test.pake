@@ -1,3 +1,3 @@
 set $additional_sources "additional.cpp"
-target application "Test" sources("Test.cpp" $additional_sources)
+target application Test sources("Test.cpp" $additional_sources)
 
