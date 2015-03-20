@@ -202,10 +202,9 @@ class CompileableTarget(Target):
                                                         source)
                 object_files.append(object_file)
 
-                thread = threading.Thread(
-                    target=self._build_object,
-                    args=(toolchain, self.common_parameters.name, object_file,
-                          source, evaluated_include_dirs, evaluated_compiler_flags))
+                thread = threading.Thread(target=self._build_object,
+                                          args=(toolchain, self.common_parameters.name, object_file,
+                                                source, evaluated_include_dirs, evaluated_compiler_flags))
 
                 threads.append(thread)
                 thread.daemon = True
