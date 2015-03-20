@@ -114,7 +114,7 @@ class Module:
         return ret
 
     # ($var1:$var2 something4:$var1)
-    def __parse_colon_list(self, it):
+    def _parse_configuration_export(self, it):
         ret = []
         token = it.next()
         if token == lexer.Token.OPEN_PARENTHESIS:
@@ -122,16 +122,13 @@ class Module:
             while True:
                 token = it.next()
 
-                first = None
-                second = None
-
                 if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
-                    first = token
+                    first = self._token_to_variable(token)
                     token = it.next()
                     if token == lexer.Token.COLON:
                         token = it.next()
                         if token == lexer.Token.VARIABLE:
-                            second = token
+                            second = self._token_to_variable(token)
                             ret.append((first, second))
                         else:
                             ui.parse_error(token, msg="expected variable")
@@ -288,7 +285,7 @@ class Module:
                 elif token.content == "application_suffix": configuration.application_suffix = self.__parse_list(it)
                 elif token.content == "compiler_flags": configuration.compiler_flags = self.__parse_list(it)
                 elif token.content == "linker_flags": configuration.linker_flags = self.__parse_list(it)
-                elif token.content == "export": configuration.export = self.__parse_colon_list(it)
+                elif token.content == "export": configuration.export = self._parse_configuration_export(it)
                 else: ui.parse_error(token)
 
             elif token == lexer.Token.NEWLINE:

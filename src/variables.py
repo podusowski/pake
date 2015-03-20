@@ -15,7 +15,7 @@ def export_special_variables(configuration):
         add("__configuration", "$__name", configuration.name)
 
         for (value, name) in configuration.export:
-            add("__configuration", name.content, value)
+            add("__configuration", "".join(name.eval()), value)
 
         for module in modules:
             add(module, "$__build", fsutils.build_dir(configuration.name))
@@ -105,7 +105,7 @@ class ReferenceToVariable:
         parts = self.name.split(".")
 
         if len(parts) == 1:
-            self.module = current_module
+            self.module = self.module
             self.name = parts[0]
         elif len(parts) == 2:
             self.module = parts[0][1:] # lose the $
@@ -118,7 +118,7 @@ class ReferenceToVariable:
 
         # TODO: make some comment about __configuration variables
         if not self.name in modules[self.module]:
-            ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
+            ui.fatal("{!s} does not exist".format(self))
 
         return modules[self.module][self.name].eval()
 
