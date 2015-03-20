@@ -4,6 +4,7 @@ working_directory=__benchmark
 project_sources=src
 pake=`pwd`/src/pake.py
 report_file=report.txt
+files_generated=0
 
 function make_header_filename()
 {
@@ -53,10 +54,12 @@ function generate_compilation_units()
 
 function perform_tests()
 {
-    local compilation_unit_size=1
-    local header_include_level=2
+    local compilation_unit_size=50
+    local header_include_level=1000
 
-    generate_compilation_units $compilation_unit_size $header_include_level > compilation_units.list
+    echo "making $compilation_unit_size compilation units, each with $header_include_level include levels, stand by..."
+    generate_compilation_units $compilation_unit_size $header_include_level | tee compilation_units.list
+    echo
 
     test_pake
     test_cmake
@@ -123,6 +126,10 @@ function test_cmake()
     cmake .
 
     test_buildsystem make -j1
+
+    rm CMakeCache.txt
+    cmake -GNinja .
+    test_buildsystem ninja -j1
 }
 
 function main()
