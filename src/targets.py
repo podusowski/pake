@@ -138,18 +138,13 @@ class Target:
         if should_run:
             variables.pollute_environment(self.common_parameters.module_name)
 
-            evaluated_cmds = self.eval(cmds)
+            evaluated_cmds = cmds.eval()
 
             for cmd in evaluated_cmds:
                 ui.debug("running {!s}".format(cmd))
                 shell.execute(cmd)
 
         os.chdir(root_dir)
-
-    def eval(self, variable):
-        return variables.eval(
-            self.common_parameters.module_name,
-            variable)
 
 
 class Phony(Target):

@@ -159,10 +159,6 @@ class Variable:
     eval_to_string = eval_literal_to_string
 
 
-def eval(current_module, variable):
-    return variable.eval()
-
-
 def add_empty(module_name, name):
     if module_name not in modules:
         modules[module_name] = {}
