@@ -171,24 +171,17 @@ class CompileableTarget(Target):
         self.cxx_parameters = cxx_parameters
         self.error = False
 
-    def __build_object(self, jobs_semaphore, toolchain, name, object_file,
+    def _build_object(self, toolchain, name, object_file,
                        source, include_dirs, compiler_flags):
-        with jobs_semaphore:
-            if self.error:
-                return
+        if self.error:
+            return
 
-            try:
-                toolchain.build_object(
-                    name,
-                    object_file,
-                    source,
-                    include_dirs,
-                    compiler_flags
-                )
-            except Exception as e:
-                ui.debug("catched during compilation {!s}".format(e))
-                self.error_reason = str(e)
-                self.error = True
+        try:
+            toolchain.build_object(name, object_file, source, include_dirs, compiler_flags)
+        except Exception as e:
+            ui.debug("catched during compilation {!s}".format(e))
+            self.error_reason = str(e)
+            self.error = True
 
     def build_objects(self, toolchain):
         object_files = []
@@ -204,31 +197,22 @@ class CompileableTarget(Target):
         limit_semaphore = threading.Semaphore(int(command_line.args.jobs))
 
         for source in evaluated_sources:
-            object_file = toolchain.object_filename(self.common_parameters.name,
-                                                    source)
-            object_files.append(object_file)
+            with limit_semaphore:
+                object_file = toolchain.object_filename(self.common_parameters.name,
+                                                        source)
+                object_files.append(object_file)
 
-            thread = threading.Thread(
-                target=self.__build_object,
-                args=(
-                    limit_semaphore,
-                    toolchain,
-                    self.common_parameters.name,
-                    object_file,
-                    source,
-                    evaluated_include_dirs,
-                    evaluated_compiler_flags
-                )
-            )
+                thread = threading.Thread(
+                    target=self._build_object,
+                    args=(toolchain, self.common_parameters.name, object_file,
+                          source, evaluated_include_dirs, evaluated_compiler_flags))
 
-            threads.append(thread)
-            thread.daemon = True
-            thread.start()
+                threads.append(thread)
+                thread.daemon = True
+                thread.start()
 
-        while threads:
-            for thread in [t for t in threads if not t.isAlive()]:
-                thread.join(0.1)
-                threads.remove(thread)
+        for t in threads:
+            t.join()
 
         if self.error:
             ui.fatal("cannot build {!s}, reason: {!s}"
