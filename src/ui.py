@@ -12,6 +12,7 @@ BOLD_BLUE = "\033[34;1m"
 _log_depth = 0
 _lock = threading.Lock()
 
+
 class _Ident:
     def __enter__(self):
         global _log_depth
@@ -23,7 +24,18 @@ class _Ident:
         with _lock:
             _log_depth -= 1
 
+
 ident = _Ident()
+
+
+def _fancy_print(base_text, color="", additional_text=""):
+    with _lock:
+        if sys.stdout.isatty():
+            print(color + base_text + RESET + " " + additional_text)
+        else:
+            print(base_text + " " + additional_text)
+        sys.stdout.flush()
+
 
 def push():
     global _log_depth
@@ -31,11 +43,13 @@ def push():
     with _lock:
         _log_depth += 1
 
+
 def pop():
     global _log_depth
 
     with _lock:
         _log_depth -= 1
+
 
 def print_depth_prefix():
     global _log_depth
@@ -43,35 +57,25 @@ def print_depth_prefix():
     for i in range(_log_depth):
         sys.stdout.write("    ")
 
+
 def info(message):
     with _lock:
         print(message)
         sys.stdout.flush()
 
+
 def step(tool, parameter):
-    with _lock:
-        if sys.stdout.isatty():
-            print(BOLD + tool + RESET + " " + parameter)
-        else:
-            print(tool + " " + parameter)
-        sys.stdout.flush()
+    _fancy_print(tool, BOLD, parameter)
+
 
 def bigstep(tool, parameter):
-    with _lock:
-        if sys.stdout.isatty():
-            print(BOLD_BLUE + tool + RESET + " " + parameter)
-        else:
-            print(tool + " " + parameter)
-        sys.stdout.flush()
+    _fancy_print(tool, BOLD_BLUE, parameter)
+
 
 def fatal(message):
-    with _lock:
-        if sys.stdout.isatty():
-            print(BOLD_RED + "fatal: " + RESET + message)
-        else:
-            print("fatal: " + message)
-        sys.stdout.flush()
-        sys.exit(1)
+    _fancy_print("fatal: ", BOLD_RED, message)
+    sys.exit(1)
+
 
 def parse_error(token=None, msg=None):
     if token is not None:
@@ -84,7 +88,8 @@ def parse_error(token=None, msg=None):
     else:
         fatal(msg)
 
-def debug(s, env=None):
+
+def debug(s):
     if "DEBUG" in os.environ:
         with _lock:
             print_depth_prefix()
