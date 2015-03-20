@@ -42,11 +42,7 @@ def build(name):
             ui.fatal("target {} is not visible in {!s}"
                      .format(name, configuration))
 
-        evalueated_depends_on = variables.eval(
-            target.common_parameters.module_name,
-            target.common_parameters.depends_on)
-
-        for dependency in evalueated_depends_on:
+        for dependency in target.common_parameters.depends_on.eval():
             ui.debug("{} depends on {}".format(name, dependency))
             build(dependency)
 
@@ -101,7 +97,7 @@ class Target:
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        for resource in self.eval(self.common_parameters.resources):
+        for resource in self.common_parameters.resources.eval():
             ui.step("copy", resource)
             shell.execute("rsync --update -r '{resource}' '{build_dir}/'"
                           .format(resource=resource,
@@ -110,7 +106,7 @@ class Target:
         os.chdir(root_dir)
 
     def is_visible(self, configuration):
-        evaluated_visible_in = self.eval(self.common_parameters.visible_in)
+        evaluated_visible_in = self.common_parameters.visible_in.eval()
 
         if evaluated_visible_in:
             return configuration.name in evaluated_visible_in
@@ -121,8 +117,8 @@ class Target:
         root_dir = os.getcwd()
         os.chdir(self.common_parameters.root_path)
 
-        evaluated_artefacts = self.eval(self.common_parameters.artefacts)
-        evaluated_prerequisites = self.eval(self.common_parameters.prerequisites)
+        evaluated_artefacts = self.common_parameters.artefacts.eval()
+        evaluated_prerequisites = self.common_parameters.prerequisites.eval()
 
         should_run = True
         if evaluated_prerequisites and evaluated_artefacts:
@@ -196,9 +192,9 @@ class CompileableTarget(Target):
 
     def build_objects(self, toolchain):
         object_files = []
-        evaluated_sources = self.eval(self.cxx_parameters.sources)
-        evaluated_include_dirs = self.eval(self.cxx_parameters.include_dirs)
-        evaluated_compiler_flags = self.eval(self.cxx_parameters.compiler_flags)
+        evaluated_sources = self.cxx_parameters.sources.eval()
+        evaluated_include_dirs = self.cxx_parameters.include_dirs.eval()
+        evaluated_compiler_flags = self.cxx_parameters.compiler_flags.eval()
 
         ui.debug("building objects from {!s}".format(evaluated_sources))
         ui.push()
