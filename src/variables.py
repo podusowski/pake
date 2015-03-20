@@ -152,43 +152,6 @@ def eval(current_module, variable):
 
     return variable.eval()
 
-def __eval_literal(current_module, s):
-    ui.debug("evaluating literal: " + s)
-
-    with ui.ident:
-        ret = ""
-
-        STATE_READING = 1
-        STATE_WAITING_FOR_PARENTHESIS = 2
-        STATE_READING_NAME = 3
-
-        variable_name = '$'
-        state = STATE_READING
-
-        for c in s:
-            if state == STATE_READING:
-                if c == "$":
-                    state = STATE_WAITING_FOR_PARENTHESIS
-                else:
-                    ret += c
-            elif state == STATE_WAITING_FOR_PARENTHESIS:
-                if c == "{":
-                    state = STATE_READING_NAME
-                else:
-                    ui.parse_error(msg="expecting { after $")
-            elif state == STATE_READING_NAME:
-                if c == "}":
-                    ui.debug("variable: " + variable_name)
-                    evaluated_variable = eval(current_module, Variable(content=lexer.Token(lexer.Token.VARIABLE, variable_name)))
-                    ret += " ".join(evaluated_variable)
-                    variable_name = '$'
-                    state = STATE_READING
-                else:
-                    variable_name += c
-            elif state == STATE_READING_NAME:
-                variable_name = variable_name + c
-
-        return ret
 
 def add_empty(module_name, name):
     if not module_name in modules:
