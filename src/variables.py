@@ -49,6 +49,7 @@ class Literal:
         return self.content
 
     def eval(self):
+        s = self.content
         ui.debug("evaluating literal: " + s)
 
         ret = ""
@@ -96,6 +97,8 @@ class ReferenceToVariable:
     def __str__(self):
         return "${}.{}".format(self.module, self.name)
 
+    __repr__ = __str__
+
     def eval(self):
         ui.debug("evaluating {!s}".format(self))
 
@@ -110,19 +113,14 @@ class ReferenceToVariable:
 
         global modules
 
-        if not module in modules:
+        if not self.module in modules:
             ui.parse_error(msg="no such module: " + module)
 
         # TODO: make some comment about __configuration variables
-        if not name in modules[module]:
+        if not self.name in modules[self.module]:
             ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
 
-        ret = []
-
-        for value in modules[module][name]:
-            ret += value.eval()
-
-        return ret
+        return modules[self.module][self.name].eval()
 
 
 class Variable:
@@ -139,12 +137,14 @@ class Variable:
         return "${}.{} = {!s} ".format(self.module, self.name, self.content)
 
     def eval(self):
-        el = []
+        ret = []
         for el in self.content:
             if isinstance(el, str):
                 ret += [el]
             else:
                 ret += el.eval()
+
+        return ret
 
 
 def eval(current_module, variable):
@@ -158,6 +158,9 @@ def eval(current_module, variable):
             content = __eval_literal(variable.module, token)
             ui.debug("  " + token + " = " + content)
             ret.append(content)
+
+        elif isinstance(token, Literal) or isinstance(token, ReferenceToVariable) or isinstance(token, Variable):
+            ret += token.eval()
 
         elif token == lexer.Token.LITERAL:
             content = __eval_literal(current_module, token.content)

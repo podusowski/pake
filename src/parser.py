@@ -86,16 +86,16 @@ class Module:
 
     # (something1 something2)
     def __parse_list(self, it):
-        ret = variables.Variable(None, None)
+        ret = variables.Variable()
         token = it.next()
         if token == lexer.Token.OPEN_PARENTHESIS:
 
             while True:
                 token = it.next()
                 if token == lexer.Token.LITERAL:
-                    ret.content.append(token)
+                    ret.content.append(variables.Literal(module=self.name, content=token.content))
                 elif token == lexer.Token.VARIABLE:
-                    ret.content.append(token)
+                    ret.content.append(variables.ReferenceToVariable(module=self.name, name=token.content))
                 elif token == lexer.Token.CLOSE_PARENTHESIS:
                     break
                 else:
