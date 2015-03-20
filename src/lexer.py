@@ -53,11 +53,11 @@ class Token:
     OPEN_PARENTHESIS = 1
     CLOSE_PARENTHESIS = 2
     LITERAL = 3
-    QUOTED_LITERAL = 8
-    VARIABLE = 4
-    NEWLINE = 5
-    MULTILINE_LITERAL = 6
-    COLON = 7
+    QUOTED_LITERAL = 4
+    VARIABLE = 5
+    NEWLINE = 6
+    MULTILINE_LITERAL = 7
+    COLON = 8
 
     def __init__(self, token_type, content, filename=None, line=None, col=None):
         self.token_type = token_type
