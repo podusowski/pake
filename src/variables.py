@@ -116,7 +116,6 @@ class ReferenceToVariable:
         if not self.module in modules:
             ui.parse_error(msg="no such module: " + module)
 
-        # TODO: make some comment about __configuration variables
         if not self.name in modules[self.module]:
             ui.fatal("{!s} does not exist".format(self))
 
@@ -148,53 +147,9 @@ class Variable:
 
 
 def eval(current_module, variable):
-    ui.debug("evaluating {!s}, obsolete param current_module: {}".format(variable, current_module))
-    ui.push()
+    ui.debug("OBSOLETE FUNCTION: evaluating {!s}, obsolete param current_module: {}".format(variable, current_module))
 
-    ret = []
-    for token in variable.content:
-        # TODO: this will eventualy be an polymorphic object
-        if isinstance(token, str):
-            content = __eval_literal(variable.module, token)
-            ui.debug("  " + token + " = " + content)
-            ret.append(content)
-
-        elif isinstance(token, Literal) or isinstance(token, ReferenceToVariable) or isinstance(token, Variable):
-            ret += token.eval()
-
-        elif token == lexer.Token.LITERAL:
-            content = __eval_literal(current_module, token.content)
-            ui.debug("  " + token.content + " = " + content)
-            ret.append(content)
-        elif token == lexer.Token.VARIABLE:
-            parts = token.content.split(".")
-
-            ui.debug("dereferencing " + str(parts))
-
-            module = ''
-            name = ''
-            if len(parts) == 1:
-                module = current_module
-                name = parts[0]
-            elif len(parts) == 2:
-                module = parts[0][1:] # lose the $
-                name = "$" + parts[1]
-
-            if not module in modules:
-                ui.parse_error(msg="no such module: " + module)
-
-            # TODO: make some comment about __configuration variables
-            if not name in modules[module]:
-                ui.fatal("dereferenced " + name + " but it doesn't exists in module " + module)
-
-            for value in modules[module][name].content:
-                ret += eval(module, Variable(content=value))
-        else:
-            ui.parse_error(token)
-
-    ui.debug(" = " + str(ret))
-    ui.pop()
-    return ret
+    return variable.eval()
 
 def __eval_literal(current_module, s):
     ui.debug("evaluating literal: " + s)
