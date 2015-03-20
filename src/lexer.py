@@ -11,10 +11,8 @@ class FileReader:
 
     def value(self):
         if self.eof():
-            ui.debug("Read out of range: " + str(self.position), "TOKENIZER")
             raise Exception("eof")
 
-        ui.debug("read: " + str(self.buf[self.position]), "TOKENIZER")
         return str(self.buf[self.position])
 
     def rewind(self, value = 1):

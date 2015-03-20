@@ -87,6 +87,5 @@ def parse_error(token=None, msg=None):
 def debug(s, env=None):
     if "DEBUG" in os.environ:
         with _lock:
-            if env is None or env in os.environ:
-                print_depth_prefix()
-                print(GRAY + s + RESET)
+            print_depth_prefix()
+            print(GRAY + s + RESET)
