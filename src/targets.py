@@ -213,7 +213,7 @@ class CompileableTarget(Target):
             t.join()
 
         if self.error:
-            ui.fatal("cannot build {!s}, reason: {!s}"
+            ui.fatal("failed building {!s}: {!s}"
                      .format(self.common_parameters.name, self.error_reason))
 
         ui.pop()

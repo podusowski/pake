@@ -46,7 +46,7 @@ class FileLocation:
         self.column = column
 
     def __str__(self):
-        return "{}:{!s}:{!s}".format(self.filename, self.line, self.column)
+        return "{}:{!s}".format(self.filename, self.line)
 
 
 class Token:
@@ -67,7 +67,7 @@ class Token:
         self.line = line
         self.col = col
 
-        self.file_location = FileLocation(filename, line, col)
+        self.location = FileLocation(filename, line, col)
 
     def __repr__(self):
         if self.is_a(Token.LITERAL):
@@ -78,7 +78,7 @@ class Token:
             return self.content
 
     def location_str(self):
-        return str(self.file_location)
+        return str(self.location)
 
     def is_a(self, token_type):
         return self.token_type == token_type

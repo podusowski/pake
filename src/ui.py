@@ -79,7 +79,7 @@ def fatal(message):
 
 def parse_error(token=None, msg=None):
     if token is not None:
-        s = token.location_str()
+        s = str(token.location)
         if msg is not None:
             s += ": " + msg
         else:

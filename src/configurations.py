@@ -31,7 +31,8 @@ def get_selected_configuration():
     try:
         return configurations[command_line.args.configuration]
     except:
-        ui.fatal("no such configuration: {}".format(command_line.args.configuration))
+        ui.fatal("no such configuration: {}, perhaps try one of these: {}"
+                 .format(command_line.args.configuration, " ".join(configurations)))
 
 def add_configuration(configuration):
     ui.debug("adding configuration: " + str(configuration))

@@ -10,7 +10,7 @@ def execute(command, capture_output = False):
         else:
             subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        raise Exception("command finished with error, returncode: {}, command: {}".format(str(e.returncode), command))
+        raise Exception("command exited with error({}): {}".format(str(e.returncode), command))
 
     ui.debug("command completed: " + command)
     return out
