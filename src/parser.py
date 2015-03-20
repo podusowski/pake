@@ -27,12 +27,14 @@ class CommonTargetParameters:
         self.resources = Variable()
         self.visible_in = Variable()
 
+
 class CxxParameters:
     def __init__(self):
         self.sources = Variable()
         self.include_dirs = Variable()
         self.compiler_flags = Variable()
         self.built_targets = Variable()
+
 
 class Module:
     def __init__(self, filename):
@@ -57,20 +59,18 @@ class Module:
                 self.name,
                 "$__null")
 
+    def _token_to_variable(self, token):
+        if token == lexer.Token.LITERAL:
+            return variables.Literal(self.name, token.content)
+        elif token == lexer.Token.VARIABLE:
+            return variables.ReferenceToVariable(self.name, token.content)
+
     def __get_module_name(self, filename):
         base = os.path.basename(filename)
         (root, ext) = os.path.splitext(base)
         return root
 
-
     def __parse_set_or_append(self, it, append):
-
-        def token_to_variable(token):
-            if token == lexer.Token.LITERAL:
-                return variables.Literal(self.name, token.content)
-            elif token == lexer.Token.VARIABLE:
-                return variables.ReferenceToVariable(self.name, token.content)
-
         token = it.next()
         if token == lexer.Token.VARIABLE:
             variable_name = token.content
@@ -82,9 +82,9 @@ class Module:
             token = it.next()
             if token in [lexer.Token.LITERAL, lexer.Token.VARIABLE]:
                 if append or second_add:
-                    variables.append(self.name, variable_name, token_to_variable(token))
+                    variables.append(self.name, variable_name, self._token_to_variable(token))
                 else:
-                    variables.add(self.name, variable_name, token_to_variable(token))
+                    variables.add(self.name, variable_name, self._token_to_variable(token))
                     second_add = True
 
             elif token == lexer.Token.NEWLINE:
