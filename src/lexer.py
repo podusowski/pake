@@ -260,20 +260,16 @@ class Tokenizer:
 
     def __tokenize(self, buf):
         while not buf.eof():
-            ret = (
-                self.__try_tokenize_comment(buf) or
-                self.__try_tokenize_slash_newline(buf) or
-                self.__try_tokenize_simple_chars(buf) or
-                self.__try_tokenize_quoted_literal(buf) or
-                self.__try_tokenize_variable_or_literal(buf) or
-                self.__try_tokenize_whitespace(buf) or
-                self.__try_tokenize_multiline_literal(buf)
-            )
+            ret = any(self.__try_tokenize_comment(buf),
+                      self.__try_tokenize_slash_newline(buf),
+                      self.__try_tokenize_simple_chars(buf),
+                      self.__try_tokenize_quoted_literal(buf),
+                      self.__try_tokenize_variable_or_literal(buf),
+                      self.__try_tokenize_whitespace(buf),
+                      self.__try_tokenize_multiline_literal(buf))
 
             if not ret:
                 ui.parse_error(msg="unexpected character: " + str(buf.value()))
 
             if buf.eof():
                 break
-
-
