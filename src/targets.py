@@ -171,13 +171,14 @@ class CompileableTarget(Target):
         self.cxx_parameters = cxx_parameters
         self.error = False
 
-    def _build_object(self, toolchain, name, object_file,
+    def _build_object(self, sem, toolchain, name, object_file,
                        source, include_dirs, compiler_flags):
-        if self.error:
-            return
-
         try:
-            toolchain.build_object(name, object_file, source, include_dirs, compiler_flags)
+            if self.error:
+                return
+
+            with sem:
+                toolchain.build_object(name, object_file, source, include_dirs, compiler_flags)
         except Exception as e:
             ui.debug("catched during compilation {!s}".format(e))
             self.error_reason = str(e)
@@ -194,21 +195,24 @@ class CompileableTarget(Target):
 
         threads = []
 
-        limit_semaphore = threading.Semaphore(int(command_line.args.jobs))
+        jobs = command_line.args.jobs
+        limit_semaphore = threading.Semaphore(int(jobs))
+        ui.debug("limiting jobs to {!s}".format(jobs))
 
         for source in evaluated_sources:
-            with limit_semaphore:
-                object_file = toolchain.object_filename(self.common_parameters.name,
+            object_file = toolchain.object_filename(self.common_parameters.name,
                                                         source)
-                object_files.append(object_file)
+            object_files.append(object_file)
 
-                thread = threading.Thread(target=self._build_object,
-                                          args=(toolchain, self.common_parameters.name, object_file,
-                                                source, evaluated_include_dirs, evaluated_compiler_flags))
+            thread = threading.Thread(target=self._build_object,
+                                      args=(limit_semaphore, toolchain, self.common_parameters.name, object_file,
+                                            source, evaluated_include_dirs, evaluated_compiler_flags))
 
-                threads.append(thread)
-                thread.daemon = True
-                thread.start()
+            threads.append(thread)
+            thread.daemon = True
+            thread.start()
+
+        assert len(threads) <= jobs
 
         for t in threads:
             t.join()
