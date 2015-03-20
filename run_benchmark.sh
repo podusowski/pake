@@ -5,19 +5,31 @@ project_sources=src
 pake=`pwd`/src/pake.py
 report_file=report.txt
 
+function make_header_filename()
+{
+    local index=$1
+    local level=$2
+
+    echo -n "$project_sources/header_level${level}_${index}.hpp"
+}
+
 function generate_headers()
 {
     local index=$1
     local level=$2
 
-    local filename="$project_sources/header_level${level}_${index}.hpp"
+    local last_file=`make_header_filename $index $level`
 
-    if [ "$level" -lt 2 ]; then
-        echo "#include <string>" > $filename
-    else
-        header=`generate_headers $index $(($level - 1))`
-        echo "#include \"$header\"" > $filename
-    fi
+    echo "#include <string>" > $last_file
+
+    local filename=""
+
+    for i in `seq 1 $(($level - 1))`; do
+        local include_file=`make_header_filename $index $(($i + 1))`
+        filename=`make_header_filename $index $i`
+
+        echo "#include \"$include_file\"" > $filename
+    done
 
     echo $filename
 }
@@ -41,8 +53,8 @@ function generate_compilation_units()
 
 function perform_tests()
 {
-    local compilation_unit_size=10
-    local header_include_level=100
+    local compilation_unit_size=1
+    local header_include_level=2
 
     generate_compilation_units $compilation_unit_size $header_include_level > compilation_units.list
 
