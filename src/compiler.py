@@ -4,26 +4,26 @@ import marshal
 import ui
 import fsutils
 import shell
-import variables
 import configurations
 import command_line
 
-# TODO: try to drop it
-import lexer
 
 class Gnu:
-    def build_object(self, target_name, out_filename, in_filename, include_dirs, compiler_flags):
+    def build_object(self, target_name, out_filename, in_filename, include_dirs,
+                     compiler_flags):
         ui.debug("building object " + out_filename)
 
         with ui.ident:
-            prerequisites = self.__fetch_includes(target_name, in_filename, include_dirs, compiler_flags)
+            prerequisites = self.__fetch_includes(target_name, in_filename,
+                                                  include_dirs, compiler_flags)
             prerequisites.append(in_filename)
 
-            ui.debug("appending prerequisites from pake modules: " + str(fsutils.pake_files))
-            for module_filename in fsutils.pake_files:
-                prerequisites.append(module_filename)
+            ui.debug("appending prerequisites from pake modules: {!s}"
+                     .format(fsutils.pake_files))
 
-            ui.debug("prerequisites: " + str(prerequisites))
+            prerequisites.extend(fsutils.pake_files)
+
+            ui.debug("prerequisites: {!r}".format(prerequisites))
 
             if fsutils.is_any_newer_than(prerequisites, out_filename):
                 shell.execute("mkdir -p " + os.path.dirname(out_filename))
@@ -43,15 +43,18 @@ class Gnu:
             ui.debug("  with libs: " + str(link_with))
             ui.debug("  lib dirs: " + str(library_dirs))
 
-            parameters = ""
-            for directory in library_dirs:
-                parameters += "-L" + directory + " "
+            parameters = " ".join("-L " + lib_dir for lib_dir in library_dirs)
 
             ui.bigstep("linking", out_filename)
             try:
-                shell.execute(configurations.compiler() + " " + configurations.linker_flags() + " -o " + out_filename + " " + " ".join(in_filenames) + " " + self.__prepare_linker_flags(link_with) + " " + parameters)
+                shell.execute(" ".join([configurations.compiler(),
+                                        configurations.linker_flags(),
+                                        "-o", out_filename,
+                                        " ".join(in_filenames),
+                                        self.__prepare_linker_flags(link_with),
+                                        parameters]))
             except Exception as e:
-                ui.fatal("cannot link " + out_filename + ", reason: " + str(e))
+                ui.fatal("cannot link {}, reason: {!s}".format(out_filename, e))
         else:
             ui.bigstep("up to date", out_filename)
 
@@ -91,49 +94,38 @@ class Gnu:
 
     def __scan_includes(self, in_filename, include_dirs, compiler_flags):
         ui.debug("scanning includes for " + in_filename)
-        ret = []
-        out = ""
         try:
-            out = shell.execute(configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -M " + in_filename, capture_output = True).split()
+            flags = self.__prepare_compiler_flags(include_dirs, compiler_flags)
+            out = shell.execute(" ".join([configurations.compiler(), flags, "-M",
+                                          in_filename]),
+                                capture_output=True).split()
         except Exception as e:
-            raise Exception("error while building dependency graph for {!s}, {!s}".format(in_filename, str(e)))
+            raise Exception("error while building dependency graph for"
+                            "{!s}, {!s}".format(in_filename, e))
 
-        for token in out[2:]:
-            if token != "\\":
-                ret.append(token)
-
-        return ret
+        return [token for token in out[2:] if not token == "\\"]
 
     def __prepare_linker_flags(self, link_with):
-        ret = "-L " + configurations.build_dir() + " "
-        for lib in link_with:
-            ret = ret + " -l" + lib
-        return ret
+        libs_str = "".join(" -l" + lib for lib in link_with)
+        return " ".join(["-L " + configurations.build_dir(), libs_str])
 
     def __prepare_compiler_flags(self, include_dirs, compiler_flags):
-        ret = configurations.compiler_flags() + " "
-        for flag in compiler_flags:
-            ret += flag + " "
-        ret += self.__prepare_include_dirs_parameters(include_dirs) + " "
-        return ret
+        return " ".join([configurations.compiler_flags(),
+                         " ".join(compiler_flags),
+                         self.__prepare_include_dirs_parameters(include_dirs)])
 
     def __prepare_include_dirs_parameters(self, include_dirs):
-        ret = ""
-        for include_dir in include_dirs:
-            ret += "-I" + include_dir + " "
-
+        ret = " ".join("-I" + include_dir for include_dir in include_dirs)
         ui.debug("include parameters: " + ret)
-
         return ret
 
     def __are_libs_newer_than_target(self, link_with, target):
         # check if the library is from our source tree
-        for lib in link_with:
-            filename = self.static_library_filename(lib)
+        files = (self.static_library_filename(lib) for lib in link_with)
+
+        def is_newer_than_target(filename):
             if os.path.exists(filename):
                 # TODO: proper appname
-                if fsutils.is_newer_than(filename, target):
-                    return True
-        return False
+                return fsutils.is_newer_than(filename, target)
 
-
+        return any(map(is_newer_than_target, files))
