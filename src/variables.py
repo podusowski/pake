@@ -6,6 +6,7 @@ import fsutils
 
 modules = {}
 
+
 def export_special_variables(configuration):
     ui.debug("exporting special variables")
 
@@ -19,6 +20,7 @@ def export_special_variables(configuration):
 
         for module in modules:
             add(module, "$__build", fsutils.build_dir(configuration.name))
+
 
 def pollute_environment(current_module):
     ui.debug("polluting environment")
@@ -38,6 +40,7 @@ def pollute_environment(current_module):
 
 def make_simple_variable(value):
     return Variable(content=value)
+
 
 def eval_literal_to_string(literal):
     return " ".join(literal.eval())
@@ -114,15 +117,15 @@ class ReferenceToVariable:
             self.module = self.module
             self.name = parts[0]
         elif len(parts) == 2:
-            self.module = parts[0][1:] # lose the $
+            self.module = parts[0][1:]  # lose the $
             self.name = "$" + parts[1]
 
         global modules
 
-        if not self.module in modules:
+        if self.module not in modules:
             ui.parse_error(msg="no such module: " + module)
 
-        if not self.name in modules[self.module]:
+        if self.name not in modules[self.module]:
             ui.fatal("{!s} does not exist".format(self))
 
         return modules[self.module][self.name].eval()
@@ -131,7 +134,7 @@ class ReferenceToVariable:
 
 
 class Variable:
-    def __init__(self, module = None, name = None, content = None):
+    def __init__(self, module=None, name=None, content=None):
         self.module = module
         self.name = name
 
@@ -157,13 +160,11 @@ class Variable:
 
 
 def eval(current_module, variable):
-    ui.debug("OBSOLETE FUNCTION: evaluating {!s}, obsolete param current_module: {}".format(variable, current_module))
-
     return variable.eval()
 
 
 def add_empty(module_name, name):
-    if not module_name in modules:
+    if module_name not in modules:
         modules[module_name] = {}
 
     variable = Variable(name=name)
@@ -173,7 +174,7 @@ def add_empty(module_name, name):
 
 
 def add(module_name, name, value):
-    if not module_name in modules:
+    if module_name not in modules:
         modules[module_name] = {}
 
     variable = Variable(module_name, name, value)
@@ -181,15 +182,15 @@ def add(module_name, name, value):
 
     ui.debug("adding variable: {!s}".format(variable))
 
+
 def append(module_name, name, value):
-    if not module_name in modules:
+    if module_name not in modules:
         modules[module_name] = {}
 
-    if not name in modules[module_name]:
+    if name not in modules[module_name]:
         modules[module_name][name] = Variable(module_name, name)
 
     variable = modules[module_name][name]
     variable.content.append(value)
 
     ui.debug("setting variable: {!s}".format(variable))
-
