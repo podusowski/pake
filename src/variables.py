@@ -123,7 +123,7 @@ class ReferenceToVariable:
         global modules
 
         if self.module not in modules:
-            ui.parse_error(msg="no such module: " + module)
+            ui.parse_error(msg="no such module: " + self.module)
 
         if self.name not in modules[self.module]:
             ui.fatal("{!s} does not exist".format(self))
