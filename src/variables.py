@@ -143,14 +143,10 @@ class Variable:
         return "${}.{} = {!s} ".format(self.module, self.name, self.content)
 
     def eval(self):
-        ret = []
-        for el in self.content:
-            if isinstance(el, str):
-                ret += [el]
-            else:
-                ret += el.eval()
+        def eval_not_str(e):
+            return [e] if isinstance(e, str) else e.eval()
 
-        return ret
+        return reduce(list.__add__, (eval_not_str(el) for el in self.content), [])
 
     eval_to_string = eval_literal_to_string
 
