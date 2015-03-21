@@ -137,11 +137,7 @@ class Variable:
     def __init__(self, module=None, name=None, content=None):
         self.module = module
         self.name = name
-
-        if content:
-            self.content = [content]
-        else:
-            self.content = []
+        self.content = [content] if content else []
 
     def __str__(self):
         return "${}.{} = {!s} ".format(self.module, self.name, self.content)
