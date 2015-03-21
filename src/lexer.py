@@ -3,6 +3,7 @@ import ui
 class FileReader:
     def __init__(self, filename):
         self.line_number = 1
+        self.column = 1
 
         f = open(filename, "r")
         self.position = 0
@@ -18,19 +19,21 @@ class FileReader:
     def rewind(self, value = 1):
         if value > 0:
             for i in xrange(value):
-                self.position += 1
+                self.column += 1
                 if not self.eof() and self.buf[self.position] == '\n':
                     self.line_number += 1
+                    self.column = 1
+                self.position += 1
         elif value < 0:
             for i in xrange(-value):
                 self.position -= 1
+                self.column -= 1
                 if not self.eof() and self.buf[self.position] == '\n':
                     self.line_number -= 1
-        else:
-            raise Exception("rewind by 0")
+                    self.column = 1
 
     def seek(self, value):
-        self.position = value
+        self.rewind(value - self.tell())
 
     def tell(self):
         return self.position
