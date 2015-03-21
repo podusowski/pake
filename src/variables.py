@@ -43,8 +43,8 @@ def make_simple_variable(value):
     return Variable(content=value)
 
 
-def eval_literal_to_string(literal):
-    return " ".join(literal.eval())
+def eval_variable_to_string(variable):
+    return " ".join(variable.eval())
 
 
 class Literal:
@@ -96,7 +96,7 @@ class Literal:
 
         return ["".join(ret)]
 
-    eval_to_string = eval_literal_to_string
+    eval_to_string = eval_variable_to_string
 
 
 class ReferenceToVariable:
@@ -131,7 +131,7 @@ class ReferenceToVariable:
 
         return modules[self.module][self.name].eval()
 
-    eval_to_string = eval_literal_to_string
+    eval_to_string = eval_variable_to_string
 
 
 class Variable:
@@ -149,7 +149,7 @@ class Variable:
 
         return reduce(list.__add__, (eval_not_str(el) for el in self.content), [])
 
-    eval_to_string = eval_literal_to_string
+    eval_to_string = eval_variable_to_string
 
 
 def add_empty(module_name, name):
