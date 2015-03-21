@@ -84,11 +84,11 @@ class Gnu:
             cache_file = self.cache_directory(target_name) + in_filename + ".includes"
             includes = None
             if os.path.exists(cache_file) and fsutils.is_newer_than(cache_file, in_filename):
-                includes = marshal.load(open(cache_file))
+                includes = marshal.load(open(cache_file, "rb"))
             else:
                 shell.execute("mkdir -p " + os.path.dirname(cache_file))
                 includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
-                marshal.dump(includes, open(cache_file, "w"))
+                marshal.dump(includes, open(cache_file, "wb"))
 
         return includes
 
