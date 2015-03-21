@@ -3,8 +3,9 @@ import os
 import ui
 import lexer
 import fsutils
+import collections
 
-modules = {}
+modules = collections.defaultdict(dict)
 
 
 def export_special_variables(configuration):
@@ -152,9 +153,6 @@ class Variable:
 
 
 def add_empty(module_name, name):
-    if module_name not in modules:
-        modules[module_name] = {}
-
     variable = Variable(name=name)
     modules[module_name][name] = variable
 
@@ -162,9 +160,6 @@ def add_empty(module_name, name):
 
 
 def add(module_name, name, value):
-    if module_name not in modules:
-        modules[module_name] = {}
-
     variable = Variable(module_name, name, value)
     modules[module_name][name] = variable
 
@@ -172,9 +167,6 @@ def add(module_name, name, value):
 
 
 def append(module_name, name, value):
-    if module_name not in modules:
-        modules[module_name] = {}
-
     if name not in modules[module_name]:
         modules[module_name][name] = Variable(module_name, name)
 
