@@ -155,9 +155,6 @@ class Tokenizer:
         return False
 
     def __try_tokenize_comment(self, buf):
-        if buf.eof():
-            return False
-
         if buf.value() == '#':
             while not buf.eof() and buf.value() != '\n':
                 buf.rewind()
