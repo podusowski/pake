@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/podusowski/pake/master/screenshot.png" />
 
-(example of pake script which does some more things like db generation, see more at (rusted)[https://github.com/podusowski/rusted])
+(example of pake script which does some more things like db generation, see more at [rusted](https://github.com/podusowski/rusted))
 
 ## What is the difference?
 The main difference is that pake's script does not allow any logic, it means, you can not make conditions, loops, etc, you just declare what shuold happen in given target and/or configuration and for any other stuff, regular script language can be used (eg. python or bash). Why? Because we seen many projects where build scripts are more complicated than the code behind them.
