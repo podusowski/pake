@@ -148,6 +148,32 @@ There are some so called "special" things predefined in `pake`.
     </tr>
 </table>
 
+## Using configurations
+During `pake` invokation, you can define `configuration` which is pretty much set of rules which build process will follow. By default, `pake` uses predefined configuration called `__default` (it is named because you can override it as well as define new one). Now, let us change compiler and flags in default configuration:
+
+```
+configuration __default compiler(clang++) compiler_flags(-std=c++14)
+```
+
+This is default, but you can also create new configurations, see the example how it works:
+
+```
+append $win_graphic_libraries opengl32 # ...
+append $linux_graphic_libraries GL # ...
+
+configuration win32 \
+    compiler(i686-w64-mingw32-c++) \
+    archiver(i686-w64-mingw32-ar) \
+    compiler_flags(-m32) \
+    application_suffix(.exe) \
+    export($win_graphic_libraries:$graphic_libraries)
+        
+configuration linux \
+    export($linux_graphic_libraries:$graphic_libraries)
+        
+target application my_awesome_game sources(main.cpp) link_with($__configuration.graphic_libraries)
+```
+
 ## More documentation
 
 Stay tuned for more docs here... in the mean time, see the [wiki pages](https://github.com/podusowski/pake/wiki), there is some possibly outdated info there.
