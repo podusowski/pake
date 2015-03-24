@@ -1,4 +1,5 @@
 import os
+import errno
 import itertools
 
 import ui
@@ -6,9 +7,16 @@ import shell
 
 BUILD_ROOT = os.path.normpath(os.getcwd() + "/__build")
 
+def mkdir_recursive(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else: raise
 
 def make_build_dir(configuration_name):
-    shell.execute("mkdir -p " + build_dir(configuration_name))
+    mkdir_recursive(build_dir(configuration_name))
 
 
 def build_dir(configuration_name):
