@@ -2,7 +2,15 @@ import subprocess
 
 import ui
 
+_counter = 0
+
 def execute(command, capture_output = False):
+    global _counter
+
+    _counter += 1
+
+    ui.debug("running {!s}: {!s}".format(_counter, command))
+
     out = ''
     try:
         if capture_output:
@@ -12,6 +20,5 @@ def execute(command, capture_output = False):
     except subprocess.CalledProcessError as e:
         raise Exception("command exited with error({}): {}".format(str(e.returncode), command))
 
-    ui.debug("command completed: " + command)
     return out
 
