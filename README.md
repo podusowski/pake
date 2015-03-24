@@ -167,11 +167,13 @@ configuration win32 \
     compiler_flags(-m32) \
     application_suffix(.exe) \
     export($win_graphic_libraries:$graphic_libraries)
-        
+
 configuration linux \
     export($linux_graphic_libraries:$graphic_libraries)
-        
-target application my_awesome_game sources(main.cpp) link_with($__configuration.graphic_libraries)
+
+target application my_awesome_game \
+    sources(main.cpp) \
+    link_with($__configuration.graphic_libraries)
 ```
 
 ## More documentation
