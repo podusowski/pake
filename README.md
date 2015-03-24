@@ -132,6 +132,34 @@ target application my_app link_with(my_lib) depends_on(my_lib) sources($sources)
 
 It doesn't matter where your modules are, `pake` will find them and evaluate variables in proper way.
 
+### Passing include directories between modules
+It's a common case when you have a module with library target and you want to use it in your application target. In this case, it's a good practice to use module's `$__path` special variable to point compiler to proper include directories, see the example how can you configure your project to use `Google Test`:
+
+```
+# gtest.pake
+target static_library gtest include_dirs(.) sources(gmock-gtest-all.cc gmock_main.cc)
+```
+
+Of course you can put gtest directory everywhere you like.
+
+```
+# my_app.pake
+target static_library my_app_lib \
+    sources(my_class.cpp)
+
+target application my_app \
+    sources(main.cpp) \
+    link_with(my_app_lib) \
+    depends_on(my_app_lib)
+    
+target application my_app_tests \
+    sources(my_class_tests.cpp) \
+    include_dirs($gtest.__path) \
+    link_with(my_app_lib gtest) \
+    depends_on(my_app_lib gtest) \
+    run_after("${__build}/my_app_tests")
+```
+
 ### Special modules and variables
 
 There are some so called "special" things predefined in `pake`.
@@ -184,6 +212,8 @@ target application my_awesome_game \
     sources(main.cpp) \
     link_with($__configuration.graphic_libraries)
 ```
+
+Like the other things, it doesn't matter where you define these configurations, you can put them into some `configurations.pake` module or the same module as your targets.
 
 ## More documentation
 
