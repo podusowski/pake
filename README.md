@@ -1,11 +1,14 @@
-# Welcome to another, another C++ build tool
+# Welcome to another C++ build tool!
 
 <img src="https://raw.githubusercontent.com/podusowski/pake/master/screenshot.png" />
 
 (example of pake script which does some more things like db generation, see more at [rusted](https://github.com/podusowski/rusted))
 
 ## What is the difference?
-The main difference is that pake's script does not allow any logic, it means, you can not make conditions, loops, etc, you just declare what shuold happen in given target and/or configuration and for any other stuff, regular script language can be used (eg. python or bash). Why? Because we seen many projects where build scripts are more complicated than the code behind them.
+In brief:
+
+ * `pake`'s script does not allow any logic, it means, you can not make conditions, loops and so on, if you want it, just use `python` or `bash` as a prerequisite (`pake` suports running those before and after building something).
+ * It's not a "build system generator", you run it, you get things compiled.
 
 ### Meeh, another `CMake`?
 No, `CMake` is a build system generator which provides some sort of programming language to do so. It's like writing a `python` script which generates `Makefile`s, only that `CMake` syntax is far from being a programming language.
@@ -25,10 +28,10 @@ Because pake is a alpha quality software, the only official way of distributing 
 After putting pake.py somewhere suitable (for example in your project directory), create a pake module called `build.pake`. Note that only `.pake` extention is important, pake looks for all `.pake` files (we call them modules) inside your projects directory and you don't need to define them anywhere. Inside your build.pake file, put something like this:
 
 ```
-target application my_app sources(main.cpp) # hi, I'ma comment!
+target application my_app sources(main.cpp) # sup, I'm a comment!
 ```
 
-this will define a target called my_app which is statically linked application which is built from `main.cpp`. To build it, just type `./pake.py my_app` or `./pake.py -a` if you want to build every target found in your tree. After building, your application will be placed into `__build/__default` directory. In case you wonder, `__default` is directory named from current build configuration, you will hear about them later.
+this will define a target `my_app` which is statically linked application built from `main.cpp`. To build it, just type `./pake.py my_app` or `./pake.py -a` if you want to build every target found in your tree. After building, your application will be placed into `__build/__default` directory. In case you wonder, `__default` is directory named from current build configuration, you will hear about them later.
 
 ## Adding more files to the project
 Say, you want to add some new file into your project, you can write:
@@ -135,8 +138,12 @@ There are some so called "special" things predefined in `pake`.
 
 <table>
     <tr>
+        <td>`$__build`</td>
+        <td>Contains patch to the directory where all artefacts lands.</td>
+    </tr>
+    <tr>
         <td>`$__path`</td>
-        <td>Variable exported in each module, it contains base patch for the directory when the module is. Use it like `$some_module.__path`</td>
+        <td>Contains base patch for the directory where the module in which it is define lays. Use it like `$some_module.__path`</td>
     </tr>
     <tr>
         <td>`$__null`</td>
@@ -144,7 +151,7 @@ There are some so called "special" things predefined in `pake`.
     </tr>
     <tr>
         <td>`$__configuration`</td>
-        <td>It's a special module in which all exported configuration variables are available from.</td>
+        <td>It's a special module in which all exported configuration variables are available from. See more at configurations section of this tutorial.</td>
     </tr>
 </table>
 
