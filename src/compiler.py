@@ -26,7 +26,7 @@ class Gnu:
             ui.debug("prerequisites: {!r}".format(prerequisites))
 
             if fsutils.is_any_newer_than(prerequisites, out_filename):
-                shell.execute("mkdir -p " + os.path.dirname(out_filename))
+                fsutils.mkdir_recursive(os.path.dirname(out_filename));
 
                 cmd = configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename
                 if command_line.args.verbose:
@@ -86,7 +86,7 @@ class Gnu:
             if os.path.exists(cache_file) and fsutils.is_newer_than(cache_file, in_filename):
                 includes = marshal.load(open(cache_file, "rb"))
             else:
-                shell.execute("mkdir -p " + os.path.dirname(cache_file))
+                fsutils.mkdir_recursive(os.path.dirname(cache_file));
                 includes = self.__scan_includes(in_filename, include_dirs, compiler_flags)
                 marshal.dump(includes, open(cache_file, "wb"))
 
