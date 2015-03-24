@@ -155,7 +155,9 @@ During `pake` invokation, you can define `configuration` which is pretty much se
 configuration __default compiler(clang++) compiler_flags(-std=c++14)
 ```
 
-This is default, but you can also create new configurations, see the example how it works:
+By default `pake`, like most build systems out there, uses `c++` as a C++ compiler command. In distros like Debian, you can switch it using `sudo update-alternatives --config c++`.
+
+You can also create new configurations, see the example how it works:
 
 ```
 append $win_graphic_libraries opengl32 # ...
