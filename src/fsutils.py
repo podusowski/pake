@@ -1,6 +1,7 @@
 import os
 import errno
 import itertools
+import time
 
 import ui
 import shell
@@ -60,3 +61,19 @@ def _find_pake_files(path=os.getcwd()):
                      for (dirpath, _, filenames) in os.walk(path))
 
 pake_files = _find_pake_files()
+
+
+def wait_until_something_changes():
+    mkdir_recursive(BUILD_ROOT)
+    touch_file=os.path.join(BUILD_ROOT, "ci.touch")
+
+    with open(touch_file, "w") as f:
+        f.write("don't bother about this file :)")
+
+    while True:
+        time.sleep(1)
+        for dirpath, _, filenames in os.walk(os.getcwd()):
+            for filename in filenames:
+                if is_newer_than(os.path.join(dirpath, filename), touch_file):
+                    ui.debug("found change: {}".format(filename))
+                    return
