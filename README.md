@@ -129,6 +129,25 @@ target application my_app link_with(my_lib) depends_on(my_lib) sources($sources)
 
 It doesn't matter where your modules are, `pake` will find them and evaluate variables in proper way.
 
+### Special modules and variables
+
+There are some so called "special" things predefined in `pake`.
+
+<table>
+    <tr>
+        <td>`$__path`</td>
+        <td>Variable exported in each module, it contains base patch for the directory when the module is. Use it like `$some_module.__path`</td>
+    </tr>
+    <tr>
+        <td>`$__null`</td>
+        <td>Just null variable, nothing special, but it's useful when you want to export something from configuration.</td>
+    </tr>
+    <tr>
+        <td>`$__configuration`</td>
+        <td>It's a special module in which all exported configuration variables are available from.</td>
+    </tr>
+</table>
+
 ## More documentation
 
 Stay tuned for more docs here... in the mean time, see the [wiki pages](https://github.com/podusowski/pake/wiki), there is some possibly outdated info there.
