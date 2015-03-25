@@ -2,13 +2,33 @@ import os
 import sys
 import threading
 
-RESET = '\033[0m'
-BOLD = '\033[1m'
-GRAY = '\033[90m'
-RED = '\033[31m'
-BOLD_YELLOW = '\033[1;33m'
-BOLD_RED = '\033[1;31m'
-BOLD_BLUE = "\033[34;1m"
+def _supports_color():
+    # function taken from Django
+    plat = sys.platform
+    supported_platform = plat != 'Pocket PC' and (plat != 'win32' or
+                                                  'ANSICON' in os.environ)
+    is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+
+    return supported_platform and is_a_tty
+
+
+if _supports_color():
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    GRAY = '\033[90m'
+    RED = '\033[31m'
+    BOLD_YELLOW = '\033[1;33m'
+    BOLD_RED = '\033[1;31m'
+    BOLD_BLUE = "\033[34;1m"
+else:
+    RESET = ''
+    BOLD = ''
+    GRAY = ''
+    RED = ''
+    BOLD_YELLOW = ''
+    BOLD_RED = ""
+    BOLD_BLUE = ""
+
 
 _log_depth = 0
 _lock = threading.Lock()
