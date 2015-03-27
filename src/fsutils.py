@@ -42,14 +42,15 @@ def get_mtime(filename):
     return os.path.getmtime(filename)
 
 
-def __is_pake_file(filename):
-    return os.path.splitext(filename)[1] == ".pake"
-
-
 def flatten_list(func):
     def func_wrapper(*args, **kwargs):
         return list(itertools.chain.from_iterable(func(*args, **kwargs)))
     return func_wrapper
+
+
+def __is_pake_file(filename):
+    _, extension = os.path.splitext(filename)
+    return extension == ".pake"
 
 
 def __pake_files_only(dirpath, filenames):
