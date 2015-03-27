@@ -52,7 +52,7 @@ def flatten_list(func):
     return func_wrapper
 
 
-def __filter_pake_files(dirpath, filenames):
+def __pake_files_only(dirpath, filenames):
     return (os.path.join(dirpath, filename) for filename in filenames
             if __is_pake_file(filename)
             and not dirpath.startswith(BUILD_ROOT))
@@ -60,7 +60,7 @@ def __filter_pake_files(dirpath, filenames):
 
 @flatten_list
 def _find_pake_files(path=os.getcwd()):
-    return (__filter_pake_files(dirpath, filenames)
+    return (__pake_files_only(dirpath, filenames)
             for (dirpath, _, filenames) in os.walk(path))
 
 pake_files = _find_pake_files()
