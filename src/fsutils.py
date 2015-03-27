@@ -61,8 +61,8 @@ def __pake_files_only(dirpath, filenames):
 
 @flatten_list
 def _find_pake_files(path=os.getcwd()):
-    return (__pake_files_only(dirpath, filenames)
-            for (dirpath, _, filenames) in os.walk(path))
+    return [__pake_files_only(dirpath, filenames)
+            for (dirpath, _, filenames) in os.walk(path)]
 
 pake_files = _find_pake_files()
 
