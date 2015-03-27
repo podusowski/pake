@@ -46,19 +46,22 @@ def __is_pake_file(filename):
     return os.path.splitext(filename)[1] == ".pake"
 
 
+def flatten_list(func):
+    def func_wrapper(*args, **kwargs):
+        return list(itertools.chain.from_iterable(func(*args, **kwargs)))
+    return func_wrapper
+
+
 def __filter_pake_files(dirpath, filenames):
     return filter(__is_pake_file,
                   [os.path.join(dirpath, f) for f in filenames
                    if not dirpath.startswith(BUILD_ROOT)])
 
 
-def __flatten(nested_list):
-    return list(itertools.chain(*nested_list))
-
-
+@flatten_list
 def _find_pake_files(path=os.getcwd()):
-    return __flatten(__filter_pake_files(dirpath, filenames)
-                     for (dirpath, _, filenames) in os.walk(path))
+    return (__filter_pake_files(dirpath, filenames)
+            for (dirpath, _, filenames) in os.walk(path))
 
 pake_files = _find_pake_files()
 
