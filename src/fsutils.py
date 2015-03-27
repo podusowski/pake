@@ -53,9 +53,9 @@ def flatten_list(func):
 
 
 def __filter_pake_files(dirpath, filenames):
-    return filter(__is_pake_file,
-                  [os.path.join(dirpath, f) for f in filenames
-                   if not dirpath.startswith(BUILD_ROOT)])
+    return (os.path.join(dirpath, filename) for filename in filenames
+            if __is_pake_file(filename)
+            and not dirpath.startswith(BUILD_ROOT))
 
 
 @flatten_list
