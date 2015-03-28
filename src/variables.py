@@ -1,7 +1,6 @@
 import os
 
 import ui
-import lexer
 import fsutils
 import collections
 
