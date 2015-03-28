@@ -55,6 +55,8 @@ class Literal:
     def __str__(self):
         return self.content
 
+    __repr__=__str__
+
     def eval(self):
         ui.debug("evaluating {!s}: ".format(self))
 
