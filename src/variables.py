@@ -3,6 +3,7 @@ import os
 import ui
 import fsutils
 import collections
+from fsutils import flatten_list
 
 modules = collections.defaultdict(dict)
 
@@ -144,11 +145,12 @@ class Variable:
     def __str__(self):
         return "${}.{} = {!s} ".format(self.module, self.name, self.content)
 
+    @flatten_list
     def eval(self):
         def eval_not_str(e):
             return [e] if isinstance(e, str) else e.eval()
 
-        return reduce(list.__add__, (eval_not_str(el) for el in self.content), [])
+        return [eval_not_str(el) for el in self.content]
 
     eval_to_string = eval_variable_to_string
 
