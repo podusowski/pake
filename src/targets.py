@@ -18,8 +18,10 @@ def add_target(target):
 
     targets[target.common_parameters.name] = target
 
-
-def build(name):
+def _build_and_track_simple_target(name):
+    """ tracking means putting it to special
+        container, when this function is called
+        with the same target, it will be skipped """
     configuration = configurations.get_selected_configuration()
 
     fsutils.make_build_dir(configuration.name)
@@ -54,6 +56,15 @@ def build(name):
         target.copy_resources(toolchain)
 
 
+def _clear_tracked_targets():
+    _built_targets = []
+
+
+def build(name):
+    _build_and_track_simple_target(name)
+    _clear_tracked_targets()
+
+
 def build_all():
     ui.bigstep("building all targets", " ".join(targets))
 
@@ -61,9 +72,11 @@ def build_all():
 
     for name, target in targets.items():
         if target.is_visible(configuration):
-            build(name)
+            _build_and_track_simple_target(name)
         else:
             ui.bigstep("skip", name)
+
+    _clear_tracked_targets()
 
 
 class Target:
