@@ -18,7 +18,7 @@ def add_target(target):
 
     targets[target.common_parameters.name] = target
 
-def _build_and_track_simple_target(name):
+def _build_and_track_single_target(name):
     """ tracking means putting it to special
         container, when this function is called
         with the same target, it will be skipped """
@@ -61,7 +61,7 @@ def _clear_tracked_targets():
 
 
 def build(name):
-    _build_and_track_simple_target(name)
+    _build_and_track_single_target(name)
     _clear_tracked_targets()
 
 
@@ -72,7 +72,7 @@ def build_all():
 
     for name, target in targets.items():
         if target.is_visible(configuration):
-            _build_and_track_simple_target(name)
+            _build_and_track_single_target(name)
         else:
             ui.bigstep("skip", name)
 
