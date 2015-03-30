@@ -8,6 +8,7 @@ import configurations
 import parser
 import command_line
 
+
 def parse_source_tree():
     for filename in fsutils.pake_files:
         parser.parse(filename)
@@ -48,4 +49,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
