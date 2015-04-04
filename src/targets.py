@@ -126,7 +126,7 @@ class Target:
 
         return True
 
-    def __are_explicit_prerequisities_newer(self, prerequisites, artefacts):
+    def __are_explicit_prerequisities_newer(self, artefacts, prerequisites):
         ui.debug("checking prerequisites ({!s}) for making {!s}"
                  .format(prerequisites, artefacts))
 

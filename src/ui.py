@@ -102,7 +102,9 @@ def fatal(message):
     sys.exit(1)
 
 
-def parse_error(token=None, msg=None):
+def parse_error(token=None, msg=None, location=None):
+    if location is not None:
+        fatal("{!s}: {}".format(location, msg))
     if token is not None:
         s = str(token.location)
         if msg is not None:
