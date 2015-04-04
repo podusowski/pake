@@ -5,13 +5,13 @@ import ui
 import targets
 import variables
 import configurations
-import parser
+import pake.parser
 import command_line
 
 
 def parse_source_tree():
     for filename in fsutils.pake_files:
-        parser.parse(filename)
+        pake.parser.parse(filename)
 
     configuration = configurations.get_selected_configuration()
     variables.export_special_variables(configuration)

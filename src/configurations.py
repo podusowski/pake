@@ -1,5 +1,5 @@
 import ui
-import lexer
+import pake.lexer
 import command_line
 import fsutils
 import variables

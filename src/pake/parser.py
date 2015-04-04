@@ -1,7 +1,7 @@
 import os
 
 import ui
-import lexer
+from . import lexer
 import targets
 import variables
 import configurations
