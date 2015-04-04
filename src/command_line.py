@@ -2,6 +2,7 @@ import argparse
 
 import ui
 
+
 def _parse_command_line():
     parser = argparse.ArgumentParser(description='Painless buildsystem.')
     parser.add_argument('target', metavar='target', nargs="*", help='targets to be built')

@@ -327,4 +327,3 @@ class Module:
                 ui.parse_error(msg="unknown :(")
         except StopIteration:
             ui.debug("eof")
-
