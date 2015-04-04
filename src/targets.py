@@ -126,38 +126,42 @@ class Target:
 
         return True
 
-    def __try_run(self, cmds):
-        root_dir = os.getcwd()
-        os.chdir(self.common_parameters.root_path)
+    def __are_explicit_prerequisities_newer(self, prerequisites, artefacts):
+        ui.debug("checking prerequisites ({!s}) for making {!s}"
+                 .format(prerequisites, artefacts))
 
-        evaluated_artefacts = self.common_parameters.artefacts.eval()
-        evaluated_prerequisites = self.common_parameters.prerequisites.eval()
-
-        should_run = True
-        if evaluated_prerequisites and evaluated_artefacts:
-            should_run = False
-
-            ui.debug("checking prerequisites ({!s}) for making {!s}"
-                     .format(evaluated_prerequisites, evaluated_artefacts))
-
-            for artefact in evaluated_artefacts:
+        if prerequisites and artefacts:
+            for artefact in artefacts:
                 ui.debug("  " + artefact)
-                if fsutils.is_any_newer_than(evaluated_prerequisites, artefact):
+                if fsutils.is_any_newer_than(prerequisites, artefact):
                     ui.debug(("going on because {!s}"
                               "needs to be rebuilt").format(artefact))
-                    should_run = True
-                    break
+                    return True
+            return False
+        else:
+            return True
 
-        if should_run:
-            variables.pollute_environment(self.common_parameters.module_name)
+    def __try_run(self, cmds):
+        evaluated_cmds = cmds.eval()
 
-            evaluated_cmds = cmds.eval()
+        if evaluated_cmds:
+            root_dir = os.getcwd()
+            os.chdir(self.common_parameters.root_path)
 
-            for cmd in evaluated_cmds:
-                ui.debug("running {!s}".format(cmd))
-                shell.execute(cmd)
+            evaluated_artefacts = self.common_parameters.artefacts.eval()
+            evaluated_prerequisites = self.common_parameters.prerequisites.eval()
 
-        os.chdir(root_dir)
+            should_run = self.__are_explicit_prerequisities_newer(evaluated_artefacts,
+                                                                  evaluated_prerequisites)
+
+            if should_run:
+                variables.pollute_environment(self.common_parameters.module_name)
+
+                for cmd in evaluated_cmds:
+                    ui.debug("running {!s}".format(cmd))
+                    shell.execute(cmd)
+
+            os.chdir(root_dir)
 
 
 class Phony(Target):
