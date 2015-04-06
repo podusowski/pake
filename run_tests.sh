@@ -11,7 +11,7 @@ for i in tests/*; do
         if ./test.sh ; then
             echo -e "${passed}  test passed  ${reset}"
         else
-            echo -e "${bg1}  test failed  ${reset}"
+            echo -e "${failed}  test failed  ${reset}"
             exit 1
         fi
         popd > /dev/null

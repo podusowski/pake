@@ -7,6 +7,7 @@ bg2="\033[40;37m"
 
 header="\033[1;49;34m"
 passed="\033[7;49;32m"
+failed="\033[7;49;31m"
 debug="\033[0;49;90m"
 
 function error()
