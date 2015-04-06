@@ -103,7 +103,10 @@ class Gnu:
             raise Exception("error while building dependency graph for"
                             "{!s}, {!s}".format(in_filename, e))
 
-        return [token for token in out[2:] if not token == "\\"]
+        def is_system_include(filename):
+            return filename.startswith("/usr/include") or filename.startswith("/usr/lib")
+
+        return [token for token in out[2:] if not token == "\\" and not is_system_include(token)]
 
     def __prepare_linker_flags(self, link_with):
         libs_str = "".join(" -l" + lib for lib in link_with)
