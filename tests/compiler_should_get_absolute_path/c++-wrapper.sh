@@ -1,0 +1,2 @@
+echo "$@" >> calls.list
+c++ $@

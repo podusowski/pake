@@ -11,10 +11,13 @@ import command_line
 class Gnu:
     def build_object(self, target_name, out_filename, in_filename, include_dirs,
                      compiler_flags):
+
+        abs_source = os.path.join(os.getcwd(), in_filename)
+
         ui.debug("building object " + out_filename)
 
         with ui.ident:
-            prerequisites = self.__fetch_includes(target_name, in_filename,
+            prerequisites = self.__fetch_includes(target_name, abs_source,
                                                   include_dirs, compiler_flags)
             prerequisites.append(in_filename)
 
@@ -28,7 +31,7 @@ class Gnu:
             if fsutils.is_any_newer_than(prerequisites, out_filename):
                 fsutils.mkdir_recursive(os.path.dirname(out_filename));
 
-                cmd = configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + in_filename
+                cmd = configurations.compiler() + " " + self.__prepare_compiler_flags(include_dirs, compiler_flags) + " -c -o " + out_filename + " " + abs_source
                 if command_line.args.verbose:
                     ui.step(configurations.compiler(), cmd)
                 else:
