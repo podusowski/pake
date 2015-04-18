@@ -1,5 +1,6 @@
+test -n "$python" || python=python
 pake_dir=`dirname $BASH_SOURCE`/..
-pake=`readlink -f $pake_dir`/__build/pake.py
+pake="$python `readlink -f $pake_dir`/__build/pake.py"
 
 reset="\033[0m"
 bg1="\033[44;37m"
