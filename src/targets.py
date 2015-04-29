@@ -85,20 +85,15 @@ class Target:
 
     def __str__(self):
 
-        def decorate_not_empty(phrase, decor):
-            if phrase:
-                return str(decor) + str(phrase)
-            else:
-                return ''
+        def decorate_not_empty(phrase, prefix):
+            return [str(prefix) + str(phrase)] if phrase else []
 
         ra = decorate_not_empty(self.common_parameters.run_after, "run after: ")
         rb = decorate_not_empty(self.common_parameters.run_before, "run before: ")
 
-        params = ','.join([ra, rb])
-
-        return '{name} ({params})'.format(name=self.common_parameters.name,
-                                          params=' '.join([self.type_string(),
-                                                           params]))
+        return '{: <24} {: <24} {}'.format(ui.BOLD + self.type_string() + ui.RESET,
+                                        self.common_parameters.name,
+                                        ', '.join([] + ra + rb))
 
     def before(self):
         self.__try_run(self.common_parameters.run_before)

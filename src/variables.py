@@ -143,7 +143,13 @@ class Variable:
         self.content = [content] if content else []
 
     def __str__(self):
-        return "${}.{} = {!s} ".format(self.module, self.name, self.content)
+        if self.module is not None or self.name is not None:
+            return "${}.{} = {!s} ".format(self.module, self.name, self.content)
+        else:
+            return str(self.content)
+
+    def __nonzero__(self):
+        return 1 if self.module is not None or self.name is not None or self.content else 0
 
     @flatten_list
     def eval(self):
